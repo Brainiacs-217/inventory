@@ -1,0 +1,51 @@
+---
+description: BurgerBots inventory app — structure, stack, and conventions
+alwaysApply: true
+---
+
+# Inventory Project Conventions
+
+## Stack
+
+- Next.js 16 App Router, React, TypeScript, Tailwind CSS
+- Bun for package management (`bun install`, `bun dev`, `bun run build`)
+- Supabase for database and auth (`@supabase/ssr`, `@supabase/supabase-js`)
+
+## Folder structure
+
+All application code lives under `src/`:
+
+```
+src/
+├── app/          # Pages, layouts, and API route handlers
+│   └── api/      # Backend — one folder per route, export GET/POST/etc.
+├── component/    # Shared UI components (singular folder name)
+├── lib/          # Utilities and integrations (e.g. supabase/)
+└── types/        # Shared TypeScript types; import via @/types
+```
+
+- Use `@/` path aliases — never deep relative imports like `../../`
+- Do not add code outside `src/` except config files (`proxy.ts`, `next.config.ts`, etc.)
+
+## Supabase
+
+- Browser client: `@/lib/supabase/client` — Client Components only
+- Server client: `@/lib/supabase/server` — Server Components, Server Actions, API routes
+- Session refresh: `proxy.ts` at project root (Next.js 16; not `middleware.ts`)
+- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- Never expose `service_role` or secret keys in client code
+- Use `supabase.auth.getUser()` for auth checks, not `getSession()`
+- Cookie handling: only `getAll` / `setAll` — never `get`, `set`, or `remove`
+
+## API routes
+
+- Place handlers in `src/app/api/<name>/route.ts`
+- Export named HTTP methods: `GET`, `POST`, `PUT`, `DELETE`
+- Return `NextResponse.json()` for JSON responses
+- Use the server Supabase client for database access
+
+## General
+
+- Keep diffs minimal and focused
+- Match existing naming and patterns in surrounding code
+- Do not commit `.env.local` or secrets
