@@ -163,16 +163,13 @@ export function AppSidebar() {
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={`flex w-full items-center rounded-md py-2 text-sidebar-muted transition-colors hover:bg-sidebar-active/50 hover:text-sidebar-foreground ${
-            collapsed ? "justify-center px-2" : "gap-2.5 px-3"
+            collapsed ? "justify-center px-2" : "justify-end px-3"
           }`}
         >
           {collapsed ? (
             <ChevronRight aria-hidden className="h-4 w-4 shrink-0" />
           ) : (
-            <>
-              <ChevronLeft aria-hidden className="h-4 w-4 shrink-0" />
-              <span className="text-sm">Collapse</span>
-            </>
+            <ChevronLeft aria-hidden className="h-4 w-4 shrink-0" />
           )}
         </button>
       </div>
