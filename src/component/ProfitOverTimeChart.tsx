@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingUp } from "lucide-react";
+import type { ComponentProps } from "react";
 import {
   Area,
   AreaChart,
@@ -21,7 +22,7 @@ import {
   CHART_PROFIT_STROKE,
   CHART_TOOLTIP_PROPS,
 } from "@/lib/chartInteraction";
-import type { MonthlyProfit } from "@/lib/mock/dashboard";
+import type { MonthlyProfit } from "@/types/dashboard";
 import { useFollowCursorTooltip } from "@/lib/useFollowCursorTooltip";
 
 const CHART_CARD_CLASS =
@@ -100,8 +101,8 @@ function ProfitAxisTick({
   payload,
   pendingDate,
 }: {
-  x?: number;
-  y?: number;
+  x?: number | string;
+  y?: number | string;
   payload?: { value?: string };
   pendingDate?: string;
 }) {
@@ -111,8 +112,8 @@ function ProfitAxisTick({
 
   return (
     <text
-      x={x}
-      y={y + 12}
+      x={Number(x)}
+      y={Number(y) + 12}
       fill={CHART_MUTED}
       fontSize={12}
       textAnchor="middle"
@@ -219,18 +220,25 @@ export function ProfitOverTimeChart({ data }: ProfitOverTimeChartProps) {
               {...CHART_TOOLTIP_PROPS}
             />
             <Area
-              type="monotone"
-              dataKey="profit"
-              connectNulls={false}
-              stroke={CHART_PROFIT_FILL_ACTIVE}
-              strokeWidth={2.5}
-              fill={`url(#${PROFIT_FILL_GRADIENT_ID})`}
-              dot={<ProfitDot />}
-              activeDot={{ r: 6, fill: CHART_PROFIT_FILL_ACTIVE, stroke: "#fff", strokeWidth: 2 }}
-              baseLine={yAxisScale.baseLine}
-              isAnimationActive
-              animationDuration={500}
-              animationEasing="ease-in-out"
+              {...({
+                type: "monotone",
+                dataKey: "profit",
+                connectNulls: false,
+                stroke: CHART_PROFIT_FILL_ACTIVE,
+                strokeWidth: 2.5,
+                fill: `url(#${PROFIT_FILL_GRADIENT_ID})`,
+                dot: <ProfitDot />,
+                activeDot: {
+                  r: 6,
+                  fill: CHART_PROFIT_FILL_ACTIVE,
+                  stroke: "#fff",
+                  strokeWidth: 2,
+                },
+                baseLine: yAxisScale.baseLine,
+                isAnimationActive: true,
+                animationDuration: 500,
+                animationEasing: "ease-in-out",
+              } as ComponentProps<typeof Area>)}
             />
             {pendingMonthMarker.length > 0 ? (
               <Scatter

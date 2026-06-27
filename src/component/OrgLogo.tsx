@@ -1,4 +1,4 @@
-import type { Organization } from "@/lib/organizations";
+import type { Organization } from "@/lib/mock/organizations";
 
 export function OrgLogo({ org }: { org: Organization }) {
   if (org.logoSrc) {

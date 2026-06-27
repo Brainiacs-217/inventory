@@ -14,7 +14,7 @@ import {
   UNITS_OF_MEASURE,
   VENDORS,
   WEIGHT_UNITS,
-} from "@/lib/mockLookups";
+} from "@/lib/mock/lookups";
 import {
   createEmptyItemFormValues,
   type CreateItemFormValues,

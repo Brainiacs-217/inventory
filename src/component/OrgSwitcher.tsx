@@ -3,14 +3,13 @@
 import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { AddOrganizationButton } from "@/component/AddOrganizationButton";
 import { OrgLogo } from "@/component/OrgLogo";
 import {
   defaultOrganizationId,
   getOrganization,
   ORG_STORAGE_KEY,
   organizations,
-} from "@/lib/organizations";
+} from "@/lib/mock/organizations";
 
 export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -88,9 +87,6 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
               </li>
             );
           })}
-          <li>
-            <AddOrganizationButton collapsed={collapsed} />
-          </li>
         </ul>
       )}
     </div>

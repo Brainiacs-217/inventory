@@ -4,7 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
-import { RECIPE_CATEGORIES } from "@/lib/mockRecipeLookups";
+import { RECIPE_CATEGORIES } from "@/lib/mock/lookups";
 import {
   createEmptyRecipeFormValues,
   type CreateRecipeFormValues,

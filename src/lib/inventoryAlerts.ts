@@ -76,17 +76,6 @@ export function getShortDetail(alert: InventoryAlert): string {
   }
 }
 
-export function getAlertDetail(alert: InventoryAlert): string {
-  switch (alert.type) {
-    case "out_of_stock":
-      return `0 on hand · par ${alert.par} ${alert.reportingUnit}`;
-    case "below_par":
-      return `${alert.onHand} on hand · par ${alert.par} ${alert.reportingUnit}`;
-    case "stale_count":
-      return formatLastCounted(alert.lastCountedAt);
-  }
-}
-
 export function getAlertLabel(type: InventoryAlertType): string {
   switch (type) {
     case "out_of_stock":

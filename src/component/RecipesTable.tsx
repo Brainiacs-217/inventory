@@ -6,68 +6,11 @@ import { useState } from "react";
 import { CreateRecipeModal } from "@/component/CreateRecipeModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
+import { MOCK_RECIPES } from "@/lib/mock/recipes";
 import {
   type CreateRecipeFormValues,
   type Recipe,
 } from "@/types/recipe";
-
-const MOCK_RECIPES: Recipe[] = [
-  {
-    id: "1",
-    name: "Classic Milk Tea",
-    category: "Beverages",
-    yield: "16 oz",
-    foodCost: 1.15,
-    menuPrice: 5.5,
-    ingredientCount: 4,
-    prepTimeMinutes: 3,
-    notes: null,
-  },
-  {
-    id: "2",
-    name: "Brown Sugar Boba Milk",
-    category: "Beverages",
-    yield: "16 oz",
-    foodCost: 1.45,
-    menuPrice: 6.5,
-    ingredientCount: 6,
-    prepTimeMinutes: 5,
-    notes: null,
-  },
-  {
-    id: "3",
-    name: "Cheeseburger",
-    category: "Entrees",
-    yield: "1 serving",
-    foodCost: 2.8,
-    menuPrice: 12.0,
-    ingredientCount: 8,
-    prepTimeMinutes: 8,
-    notes: null,
-  },
-  {
-    id: "4",
-    name: "Fries",
-    category: "Sides",
-    yield: "1 serving",
-    foodCost: 0.65,
-    menuPrice: 4.0,
-    ingredientCount: 2,
-    prepTimeMinutes: 4,
-    notes: null,
-  },
-  {
-    id: "5",
-    name: "Thai Tea",
-    category: "Beverages",
-    yield: "16 oz",
-    foodCost: 1.2,
-    menuPrice: 5.75,
-    ingredientCount: 5,
-    prepTimeMinutes: 3,
-    notes: null,
-  },
-];
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
 

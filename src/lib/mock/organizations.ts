@@ -10,14 +10,11 @@ export const organizations: Organization[] = [
   {
     id: "breaking-dawn",
     name: "Breaking Dawn",
-    logoSrc: "/logos/breaking-dawn-icon.png",
+    logoSrc: "/logos/breaking-dawn.svg",
   },
   {
     id: "burgerbots",
     name: "BurgerBots",
-    logoSrc: "/logos/burgerbots.png",
-    logoClassName: "invert",
-    logoScaleClass: "scale-[2]",
   },
 ];
 

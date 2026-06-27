@@ -6,69 +6,12 @@ import { useState } from "react";
 import { CreateItemModal } from "@/component/CreateItemModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
+import { MOCK_ITEMS } from "@/lib/mock/items";
 import {
   type CreateItemFormValues,
   formatReportingUnitDisplay,
   type InventoryItem,
 } from "@/types/item";
-
-const MOCK_ITEMS: InventoryItem[] = [
-  {
-    id: "1",
-    name: "Bud Light",
-    reportingUnit: "bottle (12fl. oz)",
-    cost: 0.92,
-    sku: "222222",
-    category: "Beer",
-    subcategory: "Lager",
-    glCode: "5140",
-    vendor: "August A Busch Co",
-  },
-  {
-    id: "2",
-    name: "Boba",
-    reportingUnit: "tub (8.4lbs)",
-    cost: 24.0,
-    sku: "TOP-002",
-    category: "Toppings",
-    subcategory: "Jelly",
-    glCode: "5110",
-    vendor: "Boba Wholesale Co",
-  },
-  {
-    id: "3",
-    name: "Milk",
-    reportingUnit: "bag (2.2lbs)",
-    cost: 3.5,
-    sku: "DAI-001",
-    category: "Dairy",
-    subcategory: "Milk",
-    glCode: "5100",
-    vendor: "Bay Area Foods",
-  },
-  {
-    id: "4",
-    name: "Budweiser",
-    reportingUnit: "bottle (12fl. oz)",
-    cost: 0.92,
-    sku: "222223",
-    category: "Beer",
-    subcategory: "Lager",
-    glCode: "5140",
-    vendor: "August A Busch Co",
-  },
-  {
-    id: "5",
-    name: "Popping Boba",
-    reportingUnit: "tub (8.4lbs)",
-    cost: 24.0,
-    sku: "TOP-003",
-    category: "Toppings",
-    subcategory: "Jelly",
-    glCode: null,
-    vendor: "Boba Wholesale Co",
-  },
-];
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
 

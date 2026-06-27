@@ -35,3 +35,11 @@ export const CONVERSION_UNITS = [
   ...BASE_UNITS,
   ...REPORTING_UNITS,
 ] as const;
+
+export const RECIPE_CATEGORIES = [
+  "Beverages",
+  "Entrees",
+  "Sides",
+  "Desserts",
+  "Prep",
+] as const;

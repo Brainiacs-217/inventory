@@ -23,7 +23,7 @@ import {
   CHART_PROFIT_STROKE,
   CHART_TOOLTIP_PROPS,
 } from "@/lib/chartInteraction";
-import type { RecipeSales } from "@/lib/mock/dashboard";
+import type { RecipeSales } from "@/types/dashboard";
 import { useFollowCursorTooltip } from "@/lib/useFollowCursorTooltip";
 
 const CHART_CARD_CLASS =
