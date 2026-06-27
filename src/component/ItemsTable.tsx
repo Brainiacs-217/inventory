@@ -6,7 +6,6 @@ import { useState } from "react";
 import { CreateItemModal } from "@/component/CreateItemModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
-import { MOCK_ITEMS } from "@/lib/mock/items";
 import {
   type CreateItemFormValues,
   formatReportingUnitDisplay,
@@ -41,7 +40,7 @@ type ItemsTableProps = {
   items?: InventoryItem[];
 };
 
-export function ItemsTable({ items: initialItems = MOCK_ITEMS }: ItemsTableProps) {
+export function ItemsTable({ items: initialItems = [] }: ItemsTableProps) {
   const [items, setItems] = useState(initialItems);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);

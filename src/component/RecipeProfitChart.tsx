@@ -105,7 +105,7 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
           <p className="text-sm font-semibold tracking-tight text-text-primary">
             Recipe profit &amp; sales
           </p>
-          <p className="text-xs text-text-muted">Ranked by total profit (demo data)</p>
+          <p className="text-xs text-text-muted">Ranked by total profit</p>
         </div>
       </div>
       <div className="min-h-[calc(14rem+1in)] flex-1 px-2 pb-5 pt-4 sm:px-4">

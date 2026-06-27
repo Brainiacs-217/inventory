@@ -6,6 +6,12 @@ export type {
   ItemConversion,
   ItemWeightSettings,
 } from "./item";
+export type { Organization } from "./organization";
+export type {
+  SquareConnection,
+  SquareOAuthScope,
+  SquareOAuthTokenResponse,
+} from "./square";
 export type { CreateRecipeFormValues, Recipe } from "./recipe";
 export {
   createEmptyItemFormValues,

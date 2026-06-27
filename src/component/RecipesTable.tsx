@@ -6,7 +6,6 @@ import { useState } from "react";
 import { CreateRecipeModal } from "@/component/CreateRecipeModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
-import { MOCK_RECIPES } from "@/lib/mock/recipes";
 import {
   type CreateRecipeFormValues,
   type Recipe,
@@ -44,7 +43,7 @@ type RecipesTableProps = {
 };
 
 export function RecipesTable({
-  recipes: initialRecipes = MOCK_RECIPES,
+  recipes: initialRecipes = [],
 }: RecipesTableProps) {
   const [recipes, setRecipes] = useState(initialRecipes);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
