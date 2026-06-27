@@ -29,7 +29,6 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   function selectOrg(id: string) {
     setSelectedId(id);
     localStorage.setItem(ORG_STORAGE_KEY, id);
-    setOpen(false);
   }
 
   return (

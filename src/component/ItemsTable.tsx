@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { CreateItemModal } from "@/component/CreateItemModal";
 import { Modal } from "@/component/Modal";
+import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
 import {
   type CreateItemFormValues,
   formatReportingUnitDisplay,
@@ -143,8 +144,8 @@ export function ItemsTable({ items: initialItems = MOCK_ITEMS }: ItemsTableProps
       <div className="w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/80 bg-surface px-5 py-3.5">
           <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-accent/20 bg-accent/10 shadow-sm">
-              <Package className="size-4 text-text-primary" strokeWidth={1.75} />
+            <div className={CHART_ICON_BADGE_CLASS}>
+              <Package className="size-4 text-text-muted" strokeWidth={1.75} />
             </div>
             <div>
               <p className="text-sm font-semibold tracking-tight text-text-primary">
