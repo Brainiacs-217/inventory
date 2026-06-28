@@ -4,31 +4,57 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { AddOrganizationButton } from "@/component/AddOrganizationButton";
+import { CreateOrganizationModal } from "@/component/CreateOrganizationModal";
 import { OrgLogo } from "@/component/OrgLogo";
 import {
   defaultOrganizationId,
   getOrganization,
+  loadOrganizations,
   ORG_STORAGE_KEY,
-  organizations,
+  saveOrganizations,
 } from "@/lib/organizations";
+import type {
+  CreateOrganizationFormValues,
+  Organization,
+} from "@/types/organization";
 
 export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedId, setSelectedId] = useState(defaultOrganizationId);
 
   useEffect(() => {
+    const loaded = loadOrganizations();
+    setOrganizations(loaded);
+
     const stored = localStorage.getItem(ORG_STORAGE_KEY);
-    if (stored && getOrganization(stored)) {
+    if (stored && getOrganization(stored, loaded)) {
       setSelectedId(stored);
     }
   }, []);
 
-  const selected = getOrganization(selectedId);
+  const selected = getOrganization(selectedId, organizations);
 
   function selectOrg(id: string) {
     setSelectedId(id);
     localStorage.setItem(ORG_STORAGE_KEY, id);
     setOpen(false);
+  }
+
+  function handleCreateOrganization(values: CreateOrganizationFormValues) {
+    const organization: Organization = {
+      id: crypto.randomUUID(),
+      name: values.name.trim(),
+      ...(values.logoSrc ? { logoSrc: values.logoSrc } : {}),
+    };
+
+    setOrganizations((current) => {
+      const next = [...current, organization];
+      saveOrganizations(next);
+      return next;
+    });
+    selectOrg(organization.id);
   }
 
   return (
@@ -104,10 +130,19 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
             );
           })}
           <li>
-            <AddOrganizationButton collapsed={collapsed} />
+            <AddOrganizationButton
+              collapsed={collapsed}
+              onClick={() => setCreateOpen(true)}
+            />
           </li>
         </ul>
       )}
+
+      <CreateOrganizationModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSave={handleCreateOrganization}
+      />
     </div>
   );
 }

@@ -1,11 +1,17 @@
 "use client";
 
 import { BookOpen, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { CreateRecipeModal } from "@/component/CreateRecipeModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
+import {
+  computeTotalCost,
+  computeTotalIngredientCost,
+  parseOptionalNumber,
+} from "@/lib/recipeCost";
+import type { InventoryItem } from "@/types/item";
 import {
   type CreateRecipeFormValues,
   type Recipe,
@@ -17,45 +23,67 @@ function formatRecipeCount(count: number): string {
   return count === 1 ? "1 recipe" : `${count} recipes`;
 }
 
-function formatPrepTime(minutes: number | null): string {
-  if (minutes === null) return "—";
-  return minutes === 1 ? "1 min" : `${minutes} min`;
+function formatYield(
+  yieldQuantity: number | null,
+  yieldUnit: string | null,
+): string {
+  if (yieldQuantity === null) return "—";
+  const unit = yieldUnit?.trim();
+  return unit ? `${yieldQuantity} ${unit}` : `${yieldQuantity}`;
 }
 
-function mapFormToRecipe(values: CreateRecipeFormValues): Recipe {
+function mapFormToRecipe(
+  values: CreateRecipeFormValues,
+  itemsById: Map<string, InventoryItem>,
+): Recipe {
+  const totalIngredientCost = computeTotalIngredientCost(
+    values.ingredients,
+    itemsById,
+  );
+  const miscCost = parseFloat(values.miscCost) || 0;
+  const totalCost = computeTotalCost(totalIngredientCost, miscCost);
+  const salesPrice = parseFloat(values.salesPrice) || 0;
+
   return {
     id: crypto.randomUUID(),
     name: values.name.trim(),
-    category: values.category,
-    yield: values.yield.trim(),
-    foodCost: parseFloat(values.foodCost),
-    menuPrice: parseFloat(values.menuPrice),
-    ingredientCount: 0,
-    prepTimeMinutes: values.prepTimeMinutes.trim()
-      ? parseFloat(values.prepTimeMinutes)
-      : null,
-    notes: values.notes.trim() || null,
+    yieldQuantity: parseOptionalNumber(values.yieldQuantity),
+    yieldUnit: values.yieldUnit.trim() || null,
+    servingSizeQuantity: parseOptionalNumber(values.servingSizeQuantity),
+    servingSizeUnit: values.servingSizeUnit.trim() || null,
+    salesPrice,
+    miscCost,
+    foodCost: totalCost,
+    menuPrice: salesPrice,
+    ingredientCount: values.ingredients.length,
   };
 }
 
 type RecipesTableProps = {
   recipes?: Recipe[];
+  catalogItems?: InventoryItem[];
 };
 
 export function RecipesTable({
   recipes: initialRecipes = [],
+  catalogItems = [],
 }: RecipesTableProps) {
   const [recipes, setRecipes] = useState(initialRecipes);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
+  const itemsById = useMemo(
+    () => new Map(catalogItems.map((item) => [item.id, item])),
+    [catalogItems],
+  );
+
   const allSelected = recipes.length > 0 && selectedIds.size === recipes.length;
   const someSelected = selectedIds.size > 0;
   const selectedCount = selectedIds.size;
 
   function handleSave(values: CreateRecipeFormValues) {
-    setRecipes((current) => [...current, mapFormToRecipe(values)]);
+    setRecipes((current) => [...current, mapFormToRecipe(values, itemsById)]);
   }
 
   function toggleSelection(id: string) {
@@ -129,11 +157,10 @@ export function RecipesTable({
           <table className="w-full table-fixed border-collapse text-sm">
             <colgroup>
               <col className="w-11" />
-              <col className="w-[21%]" />
-              <col className="w-[13%]" />
-              <col className="w-[12%]" />
-              <col className="w-[13%]" />
-              <col className="w-[13%]" />
+              <col className="w-[24%]" />
+              <col className="w-[14%]" />
+              <col className="w-[14%]" />
+              <col className="w-[14%]" />
               <col className="w-[12%]" />
               <col className="w-[14%]" />
             </colgroup>
@@ -154,75 +181,73 @@ export function RecipesTable({
                   />
                 </th>
                 <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3">Category</th>
                 <th className="px-3 py-3">Yield</th>
                 <th className="px-3 py-3">Food Cost</th>
                 <th className="px-3 py-3">Menu Price</th>
                 <th className="px-3 py-3">Ingredients</th>
-                <th className="px-3 py-3">Prep Time</th>
+                <th className="px-3 py-3">Cost %</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {recipes.map((recipe) => (
-                <tr
-                  key={recipe.id}
-                  className="group bg-surface transition-colors hover:bg-surface-muted/40"
-                >
-                  <td className={SELECT_CELL_CLASS}>
-                    <input
-                      type="checkbox"
-                      aria-label={`Select ${recipe.name}`}
-                      checked={selectedIds.has(recipe.id)}
-                      onChange={() => toggleSelection(recipe.id)}
-                      className="size-4 rounded border-border/80 accent-accent transition-shadow group-hover:shadow-sm"
-                    />
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span
-                      className="block truncate font-medium text-text-primary"
-                      title={recipe.name}
-                    >
-                      {recipe.name}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span
-                      className="block truncate text-sm font-medium text-text-primary"
-                      title={recipe.category}
-                    >
-                      {recipe.category}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span
-                      className="block truncate text-text-secondary"
-                      title={recipe.yield}
-                    >
-                      {recipe.yield}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span className="tabular-nums font-medium text-text-primary">
-                      ${recipe.foodCost.toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span className="tabular-nums font-medium text-text-primary">
-                      ${recipe.menuPrice.toFixed(2)}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span className="text-text-secondary">
-                      {recipe.ingredientCount}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span className="text-text-secondary">
-                      {formatPrepTime(recipe.prepTimeMinutes)}
-                    </span>
-                  </td>
-                </tr>
-              ))}
+              {recipes.map((recipe) => {
+                const costPercent =
+                  recipe.menuPrice > 0
+                    ? (recipe.foodCost / recipe.menuPrice) * 100
+                    : null;
+
+                return (
+                  <tr
+                    key={recipe.id}
+                    className="group bg-surface transition-colors hover:bg-surface-muted/40"
+                  >
+                    <td className={SELECT_CELL_CLASS}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${recipe.name}`}
+                        checked={selectedIds.has(recipe.id)}
+                        onChange={() => toggleSelection(recipe.id)}
+                        className="size-4 rounded border-border/80 accent-accent transition-shadow group-hover:shadow-sm"
+                      />
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span
+                        className="block truncate font-medium text-text-primary"
+                        title={recipe.name}
+                      >
+                        {recipe.name}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span
+                        className="block truncate text-text-secondary"
+                        title={formatYield(recipe.yieldQuantity, recipe.yieldUnit)}
+                      >
+                        {formatYield(recipe.yieldQuantity, recipe.yieldUnit)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span className="tabular-nums font-medium text-text-primary">
+                        ${recipe.foodCost.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span className="tabular-nums font-medium text-text-primary">
+                        ${recipe.menuPrice.toFixed(2)}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span className="text-text-secondary">
+                        {recipe.ingredientCount}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span className="tabular-nums text-text-secondary">
+                        {costPercent !== null ? `${costPercent.toFixed(1)}%` : "—"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -232,6 +257,7 @@ export function RecipesTable({
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSave={handleSave}
+        catalogItems={catalogItems}
       />
 
       <Modal

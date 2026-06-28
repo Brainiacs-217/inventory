@@ -14,6 +14,7 @@ import {
 
 import { formatCurrency } from "@/lib/formatCurrency";
 import {
+  CHART_ACCESSIBILITY,
   CHART_BAR_PROPS,
   CHART_BORDER,
   CHART_CURSOR,
@@ -111,6 +112,7 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
       <div className="min-h-[calc(14rem+1in)] flex-1 px-2 pb-5 pt-4 sm:px-4">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            {...CHART_ACCESSIBILITY}
             data={data}
             margin={{ top: 28, right: 12, left: 4, bottom: 36 }}
             onMouseMove={onMouseMove}

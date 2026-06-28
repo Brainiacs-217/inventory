@@ -15,6 +15,7 @@ import {
 
 import { formatCurrency } from "@/lib/formatCurrency";
 import {
+  CHART_ACCESSIBILITY,
   CHART_BORDER,
   CHART_ICON_BADGE_CLASS,
   CHART_MUTED,
@@ -185,6 +186,7 @@ export function ProfitOverTimeChart({ data }: ProfitOverTimeChartProps) {
       <div className="h-[calc(14rem+1in)] pl-4 pr-2 py-4 sm:pl-5 sm:pr-4">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
+            {...CHART_ACCESSIBILITY}
             data={data}
             margin={{ top: 8, right: 12, left: 12, bottom: 0 }}
             onMouseMove={onMouseMove}

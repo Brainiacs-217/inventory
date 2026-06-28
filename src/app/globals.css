@@ -11,4 +11,13 @@
     color: #171717;
     font-family: var(--font-geist-sans), system-ui, sans-serif;
   }
+
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper:focus-within,
+.recharts-surface:focus,
+.recharts-surface:focus-visible {
+  outline: none !important;
 }

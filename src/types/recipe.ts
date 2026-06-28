@@ -1,33 +1,56 @@
+export type RecipeIngredientInput = {
+  id: string;
+  itemId: string;
+  quantity: string;
+  unit: string;
+};
+
 export type Recipe = {
   id: string;
   name: string;
-  category: string;
-  yield: string;
+  yieldQuantity: number | null;
+  yieldUnit: string | null;
+  servingSizeQuantity: number | null;
+  servingSizeUnit: string | null;
+  salesPrice: number;
+  miscCost: number;
   foodCost: number;
   menuPrice: number;
   ingredientCount: number;
-  prepTimeMinutes: number | null;
-  notes: string | null;
 };
 
 export type CreateRecipeFormValues = {
   name: string;
-  category: string;
-  yield: string;
-  foodCost: string;
-  menuPrice: string;
-  prepTimeMinutes: string;
-  notes: string;
+  ingredients: RecipeIngredientInput[];
+  salesPrice: string;
+  miscCost: string;
+  yieldQuantity: string;
+  yieldUnit: string;
+  servingSizeQuantity: string;
+  servingSizeUnit: string;
 };
 
 export function createEmptyRecipeFormValues(): CreateRecipeFormValues {
   return {
     name: "",
-    category: "",
-    yield: "",
-    foodCost: "",
-    menuPrice: "",
-    prepTimeMinutes: "",
-    notes: "",
+    ingredients: [],
+    salesPrice: "",
+    miscCost: "",
+    yieldQuantity: "",
+    yieldUnit: "",
+    servingSizeQuantity: "",
+    servingSizeUnit: "",
+  };
+}
+
+export function createRecipeIngredientInput(
+  itemId: string,
+  unit: string,
+): RecipeIngredientInput {
+  return {
+    id: crypto.randomUUID(),
+    itemId,
+    quantity: "",
+    unit,
   };
 }

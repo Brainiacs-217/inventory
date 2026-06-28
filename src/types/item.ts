@@ -5,7 +5,6 @@ export type InventoryItem = {
   cost: number;
   sku: string;
   category: string;
-  subcategory: string;
   glCode: string | null;
   vendor: string;
 };
@@ -25,7 +24,6 @@ export type ItemWeightSettings = {
 export type CreateItemFormValues = {
   name: string;
   category: string;
-  subcategory: string;
   caseSize: string;
   unitSize: string;
   unitOfMeasure: string;
@@ -65,7 +63,6 @@ export function createEmptyItemFormValues(): CreateItemFormValues {
   return {
     name: "",
     category: "",
-    subcategory: "",
     caseSize: "",
     unitSize: "",
     unitOfMeasure: "",

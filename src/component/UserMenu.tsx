@@ -16,11 +16,19 @@ function getInitials(email: string | undefined): string {
   return local.charAt(0).toUpperCase();
 }
 
+function getAvatarUrl(metadata: Record<string, unknown> | undefined): string | null {
+  if (!metadata) return null;
+
+  const url = metadata.avatar_url ?? metadata.picture;
+  return typeof url === "string" && url.length > 0 ? url : null;
+}
+
 export function UserMenu() {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -31,6 +39,7 @@ export function UserMenu() {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setEmail(user?.email ?? null);
+      setAvatarUrl(getAvatarUrl(user?.user_metadata));
     });
   }, []);
 
@@ -82,9 +91,18 @@ export function UserMenu() {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label="Account menu"
-        className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-muted text-sm font-semibold text-text-secondary transition-colors hover:bg-border"
+        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-muted text-xs font-semibold text-text-secondary transition-colors hover:bg-border"
       >
-        {initials}
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt=""
+            referrerPolicy="no-referrer"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          initials
+        )}
       </button>
 
       {open && (

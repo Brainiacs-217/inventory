@@ -1,11 +1,12 @@
 "use client";
 
 import { Package, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { CreateItemModal } from "@/component/CreateItemModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
+import { DEFAULT_ITEM_CATEGORIES } from "@/lib/lookups";
 import {
   type CreateItemFormValues,
   formatReportingUnitDisplay,
@@ -16,6 +17,12 @@ const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
 
 function formatItemCount(count: number): string {
   return count === 1 ? "1 item" : `${count} items`;
+}
+
+function mergeCategories(base: string[], items: InventoryItem[]): string[] {
+  return [...new Set([...base, ...items.map((item) => item.category)])].sort((a, b) =>
+    a.localeCompare(b),
+  );
 }
 
 function mapFormToItem(values: CreateItemFormValues): InventoryItem {
@@ -30,7 +37,6 @@ function mapFormToItem(values: CreateItemFormValues): InventoryItem {
     cost: parseFloat(values.cost),
     sku: values.sku.trim(),
     category: values.category,
-    subcategory: values.subcategory.trim(),
     glCode: values.glCode.trim() || null,
     vendor: values.vendor,
   };
@@ -45,6 +51,12 @@ export function ItemsTable({ items: initialItems = [] }: ItemsTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+
+  const categories = useMemo(
+    () => mergeCategories([...DEFAULT_ITEM_CATEGORIES, ...customCategories], items),
+    [customCategories, items],
+  );
 
   const allSelected = items.length > 0 && selectedIds.size === items.length;
   const someSelected = selectedIds.size > 0;
@@ -52,6 +64,12 @@ export function ItemsTable({ items: initialItems = [] }: ItemsTableProps) {
 
   function handleSave(values: CreateItemFormValues) {
     setItems((current) => [...current, mapFormToItem(values)]);
+  }
+
+  function handleAddCategory(name: string) {
+    setCustomCategories((current) =>
+      current.includes(name) ? current : [...current, name],
+    );
   }
 
   function toggleItemSelection(id: string) {
@@ -241,6 +259,8 @@ export function ItemsTable({ items: initialItems = [] }: ItemsTableProps) {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSave={handleSave}
+        categories={categories}
+        onAddCategory={handleAddCategory}
       />
 
       <Modal

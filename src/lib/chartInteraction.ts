@@ -33,3 +33,8 @@ export const CHART_BAR_PROPS = {
   animationDuration: 500,
   animationEasing: "ease-in-out" as const,
 };
+
+/** Prevents Recharts from making the SVG focusable (avoids the blue click outline). */
+export const CHART_ACCESSIBILITY = {
+  accessibilityLayer: false as const,
+};

@@ -13,6 +13,7 @@ type ModalProps = {
   children: ReactNode;
   footer?: ReactNode;
   size?: ModalSize;
+  bodyClassName?: string;
 };
 
 const sizeClassNames: Record<ModalSize, string> = {
@@ -29,6 +30,7 @@ export function Modal({
   children,
   footer,
   size = "md",
+  bodyClassName,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -103,7 +105,9 @@ export function Modal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-background/50 px-5 py-4">
+        <div
+          className={`flex-1 bg-background/50 px-5 py-4 ${bodyClassName ?? "overflow-y-auto"}`}
+        >
           {children}
         </div>
 

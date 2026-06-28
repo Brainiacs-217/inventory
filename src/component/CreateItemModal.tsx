@@ -1,55 +1,80 @@
 "use client";
 
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
 import { calculateItemCost, formatCostValue } from "@/lib/itemCost";
 import {
   BASE_UNITS,
-  CATEGORIES,
-  CONVERSION_UNITS,
   REPORTING_UNITS,
-  SUBCATEGORIES_BY_CATEGORY,
   UNITS_OF_MEASURE,
   VENDORS,
-  WEIGHT_UNITS,
 } from "@/lib/lookups";
 import {
   createEmptyItemFormValues,
   type CreateItemFormValues,
-  type ItemConversion,
 } from "@/types/item";
 
 type CreateItemModalProps = {
   open: boolean;
   onClose: () => void;
   onSave: (values: CreateItemFormValues) => void;
+  categories: string[];
+  onAddCategory: (name: string) => void;
 };
 
-type FormErrors = Partial<Record<keyof CreateItemFormValues, string>> & {
-  conversionFactors?: string[];
-};
+type FormErrors = Partial<Record<keyof CreateItemFormValues, string>>;
 
 const inputClassName =
-  "rounded-md border border-border/80 bg-surface px-2.5 py-1.5 text-sm text-text-primary shadow-sm transition-[border-color,box-shadow] outline-none placeholder:text-text-muted/60 hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 w-full";
+  "rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-sm text-text-primary shadow-sm transition-[border-color,box-shadow] outline-none placeholder:text-text-muted/60 hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 w-full";
 const selectClassName = `${inputClassName} appearance-none pr-8`;
-const labelClassName = "text-xs font-medium text-text-secondary";
+const labelClassName =
+  "text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted";
 
-const sectionPanelClassName =
-  "flex flex-col gap-2.5 rounded-lg border border-border/60 bg-surface p-3.5 shadow-sm";
+const sectionRowClassName = "grid grid-cols-2 gap-3";
+const sectionFieldGridClassName = "grid grid-cols-2 gap-x-3 gap-y-2.5";
 
-function SectionHeading({ children }: { children: ReactNode }) {
+function FormSection({
+  step,
+  title,
+  description,
+  children,
+  className,
+}: {
+  step: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="flex items-center gap-2 pb-0.5">
-      <span
-        className="h-3.5 w-0.5 shrink-0 rounded-full bg-accent"
-        aria-hidden
-      />
-      <h3 className="text-xs font-semibold tracking-wide text-text-primary">
-        {children}
-      </h3>
-    </div>
+    <section
+      className={`flex h-full flex-col overflow-hidden rounded-sm border border-border/80 bg-surface ${className ?? ""}`}
+    >
+      <header className="border-b border-border/80 bg-surface-muted/25 px-3 py-2">
+        <div className="flex items-start gap-2.5">
+          <span className="pt-0.5 text-xs font-bold tabular-nums tracking-wide text-text-primary">
+            {step}
+          </span>
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <span
+              className="mt-1 h-3 w-0.5 shrink-0 rounded-full bg-accent"
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <h3 className="text-sm font-medium tracking-tight text-text-primary">
+                {title}
+              </h3>
+              <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-text-muted">
+                {description}
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div className="flex flex-1 flex-col p-3">{children}</div>
+    </section>
   );
 }
 
@@ -145,49 +170,33 @@ function validateForm(values: CreateItemFormValues): FormErrors {
     }
   }
 
-  if (values.useCustomWeights) {
-    if (values.weights.tareWeight < 0) {
-      errors.weights = "Tare weight must be zero or greater.";
-    }
-    if (values.weights.fullWeight <= 0) {
-      errors.weights = "Full weight must be greater than zero.";
-    }
-    if (values.weights.fullWeight <= values.weights.tareWeight) {
-      errors.weights = "Full weight must be greater than tare weight.";
-    }
-  }
-
-  const conversionErrors: string[] = [];
-  values.conversions.forEach((conversion, index) => {
-    if (!conversion.fromUnit || !conversion.toUnit) {
-      conversionErrors[index] = "Both units are required.";
-    } else if (conversion.factor <= 0 || Number.isNaN(conversion.factor)) {
-      conversionErrors[index] = "Factor must be a positive number.";
-    }
-  });
-  if (conversionErrors.some(Boolean)) {
-    errors.conversionFactors = conversionErrors;
-  }
-
   return errors;
 }
 
-export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps) {
+export function CreateItemModal({
+  open,
+  onClose,
+  onSave,
+  categories,
+  onAddCategory,
+}: CreateItemModalProps) {
   const [values, setValues] = useState<CreateItemFormValues>(
     createEmptyItemFormValues(),
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
-
-  const subcategories = values.category
-    ? (SUBCATEGORIES_BY_CATEGORY[values.category] ?? [])
-    : [];
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryError, setNewCategoryError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setValues(createEmptyItemFormValues());
     setErrors({});
     setSaving(false);
+    setAddingCategory(false);
+    setNewCategoryName("");
+    setNewCategoryError(null);
   }, [open]);
 
   useEffect(() => {
@@ -215,20 +224,6 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
     });
   }
 
-  function handleCategoryChange(category: string) {
-    setValues((current) => ({
-      ...current,
-      category,
-      subcategory: "",
-    }));
-    setErrors((current) => {
-      const next = { ...current };
-      delete next.category;
-      delete next.subcategory;
-      return next;
-    });
-  }
-
   function handleCostChange(cost: string) {
     setValues((current) => ({
       ...current,
@@ -251,47 +246,21 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
     }));
   }
 
-  function addConversion() {
-    setValues((current) => ({
-      ...current,
-      conversions: [
-        ...current.conversions,
-        { fromUnit: "", toUnit: "", factor: 1 },
-      ],
-    }));
-  }
-
-  function updateConversion(
-    index: number,
-    field: keyof ItemConversion,
-    value: string | number,
-  ) {
-    setValues((current) => ({
-      ...current,
-      conversions: current.conversions.map((conversion, i) =>
-        i === index ? { ...conversion, [field]: value } : conversion,
-      ),
-    }));
-    setErrors((current) => {
-      if (!current.conversionFactors) return current;
-      const nextFactors = [...current.conversionFactors];
-      delete nextFactors[index];
-      return { ...current, conversionFactors: nextFactors };
-    });
-  }
-
-  function removeConversion(index: number) {
-    setValues((current) => ({
-      ...current,
-      conversions: current.conversions.filter((_, i) => i !== index),
-    }));
-    setErrors((current) => {
-      if (!current.conversionFactors) return current;
-      const nextFactors = current.conversionFactors.filter(
-        (_, i) => i !== index,
-      );
-      return { ...current, conversionFactors: nextFactors };
-    });
+  function handleAddCategorySubmit() {
+    const name = newCategoryName.trim();
+    if (!name) {
+      setNewCategoryError("Category name is required.");
+      return;
+    }
+    if (categories.some((category) => category.toLowerCase() === name.toLowerCase())) {
+      setNewCategoryError("That category already exists.");
+      return;
+    }
+    onAddCategory(name);
+    updateField("category", name);
+    setAddingCategory(false);
+    setNewCategoryName("");
+    setNewCategoryError(null);
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -313,7 +282,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
       <button
         type="button"
         onClick={onClose}
-        className="rounded-md border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
+        className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
       >
         Cancel
       </button>
@@ -321,7 +290,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
         type="submit"
         form="create-item-form"
         disabled={saving}
-        className="rounded-md bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+        className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
       >
         {saving ? "Saving..." : "Save item"}
       </button>
@@ -332,136 +301,174 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
     <Modal
       open={open}
       onClose={onClose}
-      title="Create Item"
-      description="Add a new item to your catalog."
+      title="Create item"
       footer={footer}
       size="xl"
+      bodyClassName="overflow-hidden py-3"
     >
       <form
         id="create-item-form"
         onSubmit={handleSubmit}
-        className="flex flex-col gap-3.5"
+        className="flex flex-col gap-3"
       >
-        <div className="grid gap-3 lg:grid-cols-3">
-          <section className={sectionPanelClassName}>
-            <SectionHeading>Basic Info</SectionHeading>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <Field
-                label="Item Name"
-                required
-                error={errors.name}
-                className="sm:col-span-2"
-              >
-                <input
-                  type="text"
-                  value={values.name}
-                  onChange={(event) => updateField("name", event.target.value)}
-                  className={inputClassName}
-                />
-              </Field>
-              <Field label="Category" required error={errors.category}>
-                <SelectInput>
-                  <select
-                    value={values.category}
-                    onChange={(event) => handleCategoryChange(event.target.value)}
-                    className={selectClassName}
-                  >
-                    <option value="">Select category</option>
-                    {CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </SelectInput>
-              </Field>
-              {subcategories.length > 0 ? (
-                <Field label="Subcategory" error={errors.subcategory}>
+        <div className={sectionRowClassName}>
+          <FormSection
+            step="01"
+            title="Identity"
+            description="What is this item? Start with a clear name and category."
+          >
+            <div className="flex h-full flex-col gap-2.5">
+              <div className={sectionFieldGridClassName}>
+                <Field label="Item name" required error={errors.name}>
+                  <input
+                    type="text"
+                    placeholder="e.g. Whole milk"
+                    value={values.name}
+                    onChange={(event) => updateField("name", event.target.value)}
+                    className={inputClassName}
+                    autoFocus
+                  />
+                </Field>
+                <Field label="Category" required error={errors.category}>
                   <SelectInput>
                     <select
-                      value={values.subcategory}
-                      onChange={(event) =>
-                        updateField("subcategory", event.target.value)
-                      }
+                      value={values.category}
+                      onChange={(event) => updateField("category", event.target.value)}
                       className={selectClassName}
                     >
-                      <option value="">Select subcategory</option>
-                      {subcategories.map((subcategory) => (
-                        <option key={subcategory} value={subcategory}>
-                          {subcategory}
+                      <option value="">Select category</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
                         </option>
                       ))}
                     </select>
                   </SelectInput>
                 </Field>
+              </div>
+              {!addingCategory ? (
+                <div className="mt-auto flex min-h-0 flex-1 flex-col">
+                  <button
+                    type="button"
+                    onClick={() => setAddingCategory(true)}
+                    className="inline-flex min-h-[2.75rem] w-full flex-1 items-center justify-center gap-1.5 rounded-sm border border-border/80 bg-surface px-2.5 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
+                  >
+                    <Plus className="size-3.5" strokeWidth={2} aria-hidden />
+                    New category
+                  </button>
+                </div>
               ) : (
-                <div className="hidden sm:block" />
+                <div className="mt-auto flex flex-col gap-1">
+                  <div className="flex items-stretch gap-2">
+                    <input
+                      type="text"
+                      placeholder="Category name"
+                      value={newCategoryName}
+                      onChange={(event) => {
+                        setNewCategoryName(event.target.value);
+                        setNewCategoryError(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          handleAddCategorySubmit();
+                        }
+                      }}
+                      className={`${inputClassName} min-w-0 flex-1`}
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCategorySubmit}
+                      className="shrink-0 rounded-sm bg-accent px-3 py-1 text-sm font-medium text-text-primary shadow-sm transition-[background-color] hover:bg-accent-hover"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddingCategory(false);
+                        setNewCategoryName("");
+                        setNewCategoryError(null);
+                      }}
+                      className="shrink-0 rounded-sm border border-border/80 bg-surface px-3 py-1 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {newCategoryError ? (
+                    <p className="text-xs text-error">{newCategoryError}</p>
+                  ) : null}
+                </div>
               )}
             </div>
-          </section>
+          </FormSection>
 
-          <section className={sectionPanelClassName}>
-            <SectionHeading>Packaging</SectionHeading>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Case Size" error={errors.caseSize}>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={values.caseSize}
+          <FormSection
+            step="02"
+            title="Packaging"
+            description="How the item is sold — case count, unit size, and what you call each unit."
+          >
+            <div className={sectionFieldGridClassName}>
+            <Field label="Case size" error={errors.caseSize}>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="Optional"
+                value={values.caseSize}
+                onChange={(event) => updateField("caseSize", event.target.value)}
+                className={inputClassName}
+              />
+            </Field>
+            <Field label="Unit size" required error={errors.unitSize}>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                value={values.unitSize}
+                onChange={(event) => updateField("unitSize", event.target.value)}
+                className={inputClassName}
+              />
+            </Field>
+            <Field label="Unit of measure" required error={errors.unitOfMeasure}>
+              <SelectInput>
+                <select
+                  value={values.unitOfMeasure}
                   onChange={(event) =>
-                    updateField("caseSize", event.target.value)
+                    updateField("unitOfMeasure", event.target.value)
                   }
-                  className={inputClassName}
-                />
-              </Field>
-              <Field label="Unit Size" required error={errors.unitSize}>
-                <input
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={values.unitSize}
-                  onChange={(event) =>
-                    updateField("unitSize", event.target.value)
-                  }
-                  className={inputClassName}
-                />
-              </Field>
-              <Field label="Unit of Measure" required error={errors.unitOfMeasure}>
-                <SelectInput>
-                  <select
-                    value={values.unitOfMeasure}
-                    onChange={(event) =>
-                      updateField("unitOfMeasure", event.target.value)
-                    }
-                    className={selectClassName}
-                  >
-                    <option value="">Select unit</option>
-                    {UNITS_OF_MEASURE.map((unit) => (
-                      <option key={unit} value={unit}>
-                        {unit}
-                      </option>
-                    ))}
-                  </select>
-                </SelectInput>
-              </Field>
-              <Field label="Unit Name" required error={errors.unitName}>
-                <input
-                  type="text"
-                  placeholder="bottle, tub, bag"
-                  value={values.unitName}
-                  onChange={(event) =>
-                    updateField("unitName", event.target.value)
-                  }
-                  className={inputClassName}
-                />
-              </Field>
+                  className={selectClassName}
+                >
+                  <option value="">Select unit</option>
+                  {UNITS_OF_MEASURE.map((unit) => (
+                    <option key={unit} value={unit}>
+                      {unit}
+                    </option>
+                  ))}
+                </select>
+              </SelectInput>
+            </Field>
+            <Field label="Unit name" required error={errors.unitName}>
+              <input
+                type="text"
+                placeholder="bottle, tub, bag"
+                value={values.unitName}
+                onChange={(event) => updateField("unitName", event.target.value)}
+                className={inputClassName}
+              />
+            </Field>
             </div>
-          </section>
+          </FormSection>
+        </div>
 
-          <section className={sectionPanelClassName}>
-            <SectionHeading>Vendor / Pricing</SectionHeading>
-            <div className="grid grid-cols-2 gap-2">
+        <div className={sectionRowClassName}>
+          <FormSection
+            step="03"
+            title="Purchasing"
+            description="Who you buy from and what you pay per case or unit."
+          >
+            <div className={sectionFieldGridClassName}>
               <Field label="Vendor" required error={errors.vendor}>
                 <SelectInput>
                   <select
@@ -481,6 +488,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
               <Field label="SKU" error={errors.sku}>
                 <input
                   type="text"
+                  placeholder="Optional"
                   value={values.sku}
                   onChange={(event) => updateField("sku", event.target.value)}
                   className={inputClassName}
@@ -502,14 +510,15 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                 </div>
               </Field>
             </div>
-          </section>
-        </div>
+          </FormSection>
 
-        <div className="grid gap-3 lg:grid-cols-3">
-          <section className={`${sectionPanelClassName} lg:col-span-2`}>
-            <SectionHeading>Reporting</SectionHeading>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <Field label="Reporting Unit" required error={errors.reportingUnit}>
+          <FormSection
+            step="04"
+            title="Reporting & par"
+            description="How inventory is counted, costed, and restocked."
+          >
+            <div className={sectionFieldGridClassName}>
+              <Field label="Reporting unit" required error={errors.reportingUnit}>
                 <SelectInput>
                   <select
                     value={values.reportingUnit}
@@ -527,7 +536,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                   </select>
                 </SelectInput>
               </Field>
-              <Field label="Base Unit" required error={errors.baseUnit}>
+              <Field label="Base unit" required error={errors.baseUnit}>
                 <SelectInput>
                   <select
                     value={values.baseUnit}
@@ -563,12 +572,14 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                   <button
                     type="button"
                     onClick={resetCalculatedCost}
-                    className="text-left text-[11px] text-accent hover:text-accent-hover underline-offset-4 hover:underline"
+                    className="text-left text-[10px] text-accent underline-offset-4 hover:text-accent-hover hover:underline"
                   >
                     Reset to calculated
                   </button>
                 ) : (
-                  <p className="text-[11px] text-text-muted">Auto-calculated from price</p>
+                  <p className="text-[10px] leading-tight text-text-muted">
+                    Auto from price ÷ case size
+                  </p>
                 )}
               </Field>
               <Field label="Par" error={errors.par}>
@@ -576,206 +587,42 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                   type="number"
                   min="0"
                   step="any"
+                  placeholder="Optional"
                   value={values.par}
                   onChange={(event) => updateField("par", event.target.value)}
                   className={inputClassName}
                 />
               </Field>
             </div>
-
-            <div className="flex flex-col gap-2 rounded-md border border-dashed border-border/80 bg-surface-muted/30 p-2.5">
-              <div className="flex items-center justify-between">
-                <span className={labelClassName}>Conversions</span>
-                <button
-                  type="button"
-                  onClick={addConversion}
-                  className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-surface px-2 py-1 text-[11px] font-medium text-text-secondary shadow-sm transition-colors hover:border-accent/40 hover:text-text-primary"
-                >
-                  <Plus className="size-3" />
-                  Add
-                </button>
-              </div>
-              {values.conversions.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  {values.conversions.map((conversion, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-[1fr_1fr_0.75fr_auto] items-end gap-2 rounded-md border border-border/60 bg-surface p-2"
-                    >
-                      <Field label="From">
-                        <SelectInput>
-                          <select
-                            value={conversion.fromUnit}
-                            onChange={(event) =>
-                              updateConversion(
-                                index,
-                                "fromUnit",
-                                event.target.value,
-                              )
-                            }
-                            className={selectClassName}
-                          >
-                            <option value="">Unit</option>
-                            {CONVERSION_UNITS.map((unit) => (
-                              <option key={unit} value={unit}>
-                                {unit}
-                              </option>
-                            ))}
-                          </select>
-                        </SelectInput>
-                      </Field>
-                      <Field label="To">
-                        <SelectInput>
-                          <select
-                            value={conversion.toUnit}
-                            onChange={(event) =>
-                              updateConversion(index, "toUnit", event.target.value)
-                            }
-                            className={selectClassName}
-                          >
-                            <option value="">Unit</option>
-                            {CONVERSION_UNITS.map((unit) => (
-                              <option key={unit} value={unit}>
-                                {unit}
-                              </option>
-                            ))}
-                          </select>
-                        </SelectInput>
-                      </Field>
-                      <Field
-                        label="Factor"
-                        error={errors.conversionFactors?.[index]}
-                      >
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          value={conversion.factor}
-                          onChange={(event) =>
-                            updateConversion(
-                              index,
-                              "factor",
-                              parseFloat(event.target.value) || 0,
-                            )
-                          }
-                          className={inputClassName}
-                        />
-                      </Field>
-                      <button
-                        type="button"
-                        onClick={() => removeConversion(index)}
-                        aria-label="Remove conversion"
-                        className="mb-0.5 rounded-md border border-border/80 p-1.5 text-text-muted transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className={sectionPanelClassName}>
-            <SectionHeading>Inventory Weight</SectionHeading>
-            <label className="flex cursor-pointer items-center gap-2.5 rounded-md border border-border/80 bg-surface px-2.5 py-2 text-xs text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 has-[:checked]:border-accent/40 has-[:checked]:bg-accent/5 has-[:checked]:text-text-primary">
-              <input
-                type="checkbox"
-                checked={values.useCustomWeights}
-                onChange={(event) =>
-                  updateField("useCustomWeights", event.target.checked)
-                }
-                className="size-3.5 rounded border-border accent-accent"
-              />
-              Custom tare/full weights
-            </label>
-            {values.useCustomWeights && (
-              <div className="grid grid-cols-3 gap-2 rounded-md border border-border/60 bg-surface-muted/30 p-2">
-                <Field label="Tare" error={errors.weights}>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={values.weights.tareWeight}
-                    onChange={(event) =>
-                      setValues((current) => ({
-                        ...current,
-                        weights: {
-                          ...current.weights,
-                          tareWeight: parseFloat(event.target.value) || 0,
-                        },
-                      }))
-                    }
-                    className={inputClassName}
-                  />
-                </Field>
-                <Field label="Full">
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={values.weights.fullWeight}
-                    onChange={(event) =>
-                      setValues((current) => ({
-                        ...current,
-                        weights: {
-                          ...current.weights,
-                          fullWeight: parseFloat(event.target.value) || 0,
-                        },
-                      }))
-                    }
-                    className={inputClassName}
-                  />
-                </Field>
-                <Field label="Unit">
-                  <SelectInput>
-                    <select
-                      value={values.weights.weightUnit}
-                      onChange={(event) =>
-                        setValues((current) => ({
-                          ...current,
-                          weights: {
-                            ...current.weights,
-                            weightUnit: event.target.value,
-                          },
-                        }))
-                      }
-                      className={selectClassName}
-                    >
-                      {WEIGHT_UNITS.map((unit) => (
-                        <option key={unit} value={unit}>
-                          {unit}
-                        </option>
-                      ))}
-                    </select>
-                  </SelectInput>
-                </Field>
-              </div>
-            )}
-
-            <div className="mt-1 border-t border-border/60 pt-2.5">
-              <SectionHeading>Records</SectionHeading>
-              <div className="mt-2 grid gap-2">
-                <Field label="GL Code" error={errors.glCode}>
-                  <input
-                    type="text"
-                    value={values.glCode}
-                    onChange={(event) => updateField("glCode", event.target.value)}
-                    className={inputClassName}
-                  />
-                </Field>
-                <Field label="Notes">
-                  <textarea
-                    rows={2}
-                    value={values.notes}
-                    onChange={(event) => updateField("notes", event.target.value)}
-                    className={inputClassName}
-                  />
-                </Field>
-              </div>
-            </div>
-          </section>
+          </FormSection>
         </div>
+
+        <FormSection
+          step="05"
+          title="Records"
+          description="Accounting codes and internal notes."
+        >
+          <div className={sectionFieldGridClassName}>
+            <Field label="GL code" error={errors.glCode}>
+              <input
+                type="text"
+                placeholder="Optional"
+                value={values.glCode}
+                onChange={(event) => updateField("glCode", event.target.value)}
+                className={inputClassName}
+              />
+            </Field>
+            <Field label="Notes">
+              <textarea
+                rows={2}
+                placeholder="Optional — prep notes, storage, substitutions"
+                value={values.notes}
+                onChange={(event) => updateField("notes", event.target.value)}
+                className={`${inputClassName} resize-none`}
+              />
+            </Field>
+          </div>
+        </FormSection>
       </form>
     </Modal>
   );
