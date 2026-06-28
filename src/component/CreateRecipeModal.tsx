@@ -27,7 +27,7 @@ import {
 type CreateRecipeModalProps = {
   open: boolean;
   onClose: () => void;
-  onSave: (values: CreateRecipeFormValues) => void;
+  onSave: (values: CreateRecipeFormValues) => Promise<void>;
   catalogItems: InventoryItem[];
 };
 
@@ -107,6 +107,7 @@ export function CreateRecipeModal({
     createEmptyRecipeFormValues(),
   );
   const [errors, setErrors] = useState<FormErrors>({});
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -163,15 +164,25 @@ export function CreateRecipeModal({
     );
   }
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const validationErrors = validateForm(values);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    onSave(values);
-    onClose();
+
+    setSaving(true);
+    try {
+      await onSave(values);
+      onClose();
+    } catch (error) {
+      setErrors({
+        name: error instanceof Error ? error.message : "Failed to save recipe.",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
 
   const footer = (
@@ -186,9 +197,10 @@ export function CreateRecipeModal({
       <button
         type="submit"
         form="create-recipe-form"
-        className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover"
+        disabled={saving}
+        className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
       >
-        Save recipe
+        {saving ? "Saving…" : "Save recipe"}
       </button>
     </div>
   );

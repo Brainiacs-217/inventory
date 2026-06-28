@@ -12,7 +12,7 @@ import {
 type CreateOrganizationModalProps = {
   open: boolean;
   onClose: () => void;
-  onSave: (values: CreateOrganizationFormValues) => void;
+  onSave: (values: CreateOrganizationFormValues) => Promise<void>;
 };
 
 type FormErrors = Partial<Record<keyof CreateOrganizationFormValues, string>>;
@@ -88,11 +88,15 @@ export function CreateOrganizationModal({
     createEmptyOrganizationFormValues(),
   );
   const [errors, setErrors] = useState<FormErrors>({});
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setValues(createEmptyOrganizationFormValues());
     setErrors({});
+    setSaving(false);
+    setSubmitError(null);
   }, [open]);
 
   function updateField<K extends keyof CreateOrganizationFormValues>(
@@ -131,7 +135,16 @@ export function CreateOrganizationModal({
 
     try {
       const logoSrc = await readLogoFile(file);
-      updateField("logoSrc", logoSrc);
+      setValues((current) => ({
+        ...current,
+        logoSrc,
+        logoFile: file,
+      }));
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.logoSrc;
+        return next;
+      });
     } catch {
       setErrors((current) => ({
         ...current,
@@ -140,35 +153,60 @@ export function CreateOrganizationModal({
     }
   }
 
-  function handleSubmit(event: React.FormEvent) {
+  function handleRemoveLogo() {
+    setValues((current) => ({
+      ...current,
+      logoSrc: null,
+      logoFile: null,
+    }));
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const validationErrors = validateForm(values);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
-    onSave(values);
-    onClose();
+
+    setSaving(true);
+    setSubmitError(null);
+
+    try {
+      await onSave(values);
+      onClose();
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to create organization.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   const logoInitial = values.name.trim().charAt(0).toUpperCase() || "—";
 
   const footer = (
-    <div className="flex justify-end gap-2.5">
-      <button
-        type="button"
-        onClick={onClose}
-        className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        form="create-organization-form"
-        className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover"
-      >
-        Create organization
-      </button>
+    <div className="flex flex-col gap-2">
+      {submitError && <p className="text-xs text-error">{submitError}</p>}
+      <div className="flex justify-end gap-2.5">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="create-organization-form"
+          disabled={saving}
+          className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+        >
+          {saving ? "Creating…" : "Create organization"}
+        </button>
+      </div>
     </div>
   );
 
@@ -194,6 +232,7 @@ export function CreateOrganizationModal({
             onChange={(event) => updateField("name", event.target.value)}
             className={inputClassName}
             autoFocus
+            disabled={saving}
           />
         </Field>
 
@@ -206,7 +245,8 @@ export function CreateOrganizationModal({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 aria-label={values.logoSrc ? "Change logo" : "Upload logo"}
-                className="group relative flex h-full min-h-full items-center justify-center self-stretch border-r border-border/80 bg-surface-muted/40 transition-colors hover:bg-surface-muted/70"
+                disabled={saving}
+                className="group relative flex h-full min-h-full items-center justify-center self-stretch border-r border-border/80 bg-surface-muted/40 transition-colors hover:bg-surface-muted/70 disabled:opacity-50"
               >
                 {values.logoSrc ? (
                   <img
@@ -249,11 +289,13 @@ export function CreateOrganizationModal({
                       accept={ACCEPTED_LOGO_TYPES.join(",")}
                       onChange={handleLogoChange}
                       className="sr-only"
+                      disabled={saving}
                     />
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-text-muted/30 hover:text-text-primary"
+                      disabled={saving}
+                      className="inline-flex items-center gap-1.5 rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
                     >
                       <ImagePlus aria-hidden className="size-3.5" strokeWidth={1.75} />
                       {values.logoSrc ? "Replace" : "Choose file"}
@@ -261,9 +303,10 @@ export function CreateOrganizationModal({
                     {values.logoSrc && (
                       <button
                         type="button"
-                        onClick={() => updateField("logoSrc", null)}
+                        onClick={handleRemoveLogo}
+                        disabled={saving}
                         aria-label="Remove logo"
-                        className="inline-flex size-7 items-center justify-center rounded-sm border border-border/80 text-text-muted transition-colors hover:border-text-muted/30 hover:text-text-primary"
+                        className="inline-flex size-7 items-center justify-center rounded-sm border border-border/80 text-text-muted transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
                       >
                         <X aria-hidden className="size-3.5" />
                       </button>

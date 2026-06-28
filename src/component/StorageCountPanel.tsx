@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowRight, ClipboardList } from "lucide-react";
+import { useState } from "react";
 
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
 import type {
@@ -26,7 +27,7 @@ type StorageCountPanelProps = {
   saveMessage: string | null;
   onSelectRoom: (roomId: string) => void;
   onCountChange: (itemId: string, value: number | "") => void;
-  onSaveRoomCheck: () => void;
+  onSaveRoomCheck: () => Promise<void>;
   onGoToRoomsTab: () => void;
 };
 
@@ -107,6 +108,7 @@ export function StorageCountPanel({
   onSaveRoomCheck,
   onGoToRoomsTab,
 }: StorageCountPanelProps) {
+  const [saving, setSaving] = useState(false);
   const catalogById = getCatalogItemMap(catalogItems);
   const selectedRoom = rooms.find((room) => room.id === selectedRoomId) ?? null;
   const selectedDraft = selectedRoomId ? (draftsByRoom[selectedRoomId] ?? {}) : {};
@@ -306,11 +308,18 @@ export function StorageCountPanel({
                 </p>
                 <button
                   type="button"
-                  onClick={onSaveRoomCheck}
-                  disabled={!canSave}
+                  onClick={async () => {
+                    setSaving(true);
+                    try {
+                      await onSaveRoomCheck();
+                    } finally {
+                      setSaving(false);
+                    }
+                  }}
+                  disabled={!canSave || saving}
                   className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent disabled:hover:shadow-none"
                 >
-                  Save {selectedRoom.name} check
+                  {saving ? "Saving…" : `Save ${selectedRoom.name} check`}
                 </button>
               </div>
             </>

@@ -1,10 +1,18 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
 import { StorageCheckHistoryPanel } from "@/component/StorageCheckHistoryPanel";
 import { StorageCountPanel } from "@/component/StorageCountPanel";
 import { StorageRoomsPanel } from "@/component/StorageRoomsPanel";
+import {
+  createStorageRoom,
+  deleteStorageRoom,
+  saveRoomCheck,
+  updateStorageRoom,
+  updateStorageRoomItems,
+} from "@/lib/inventory/actions";
 import type {
   CreateStorageRoomFormValues,
   InventoryTab,
@@ -25,11 +33,21 @@ function countEntered(value: number | "" | undefined): value is number {
   return value !== "" && value !== undefined;
 }
 
-export function InventoryPage() {
+type InventoryPageProps = {
+  organizationId: string | null;
+  rooms: StorageRoom[];
+  catalogItems: StorageCatalogItem[];
+  history: SavedRoomCheck[];
+};
+
+export function InventoryPage({
+  organizationId,
+  rooms,
+  catalogItems,
+  history,
+}: InventoryPageProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<InventoryTab>("rooms");
-  const [rooms, setRooms] = useState<StorageRoom[]>([]);
-  const [catalogItems, setCatalogItems] = useState<StorageCatalogItem[]>([]);
-  const [history, setHistory] = useState<SavedRoomCheck[]>([]);
   const [draftsByRoom, setDraftsByRoom] = useState<RoomDrafts>({});
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -40,47 +58,76 @@ export function InventoryPage() {
     return () => window.clearTimeout(timer);
   }, [saveMessage]);
 
-  const handleAddRoom = useCallback((values: CreateStorageRoomFormValues): StorageRoom => {
-    const room: StorageRoom = {
-      id: crypto.randomUUID(),
-      name: values.name.trim(),
-      description: values.description.trim() || undefined,
-      itemIds: [],
-    };
-    setRooms((current) => [...current, room]);
-    setSelectedRoomId(room.id);
-    return room;
-  }, []);
+  const handleAddRoom = useCallback(
+    async (values: CreateStorageRoomFormValues): Promise<StorageRoom> => {
+      if (!organizationId) {
+        throw new Error("Select an organization before adding storage rooms.");
+      }
 
-  const handleUpdateRoom = useCallback((roomId: string, values: CreateStorageRoomFormValues) => {
-    setRooms((current) =>
-      current.map((room) =>
-        room.id === roomId
-          ? {
-              ...room,
-              name: values.name.trim(),
-              description: values.description.trim() || undefined,
-            }
-          : room,
-      ),
-    );
-  }, []);
+      const result = await createStorageRoom(organizationId, values);
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
 
-  const handleDeleteRoom = useCallback((roomId: string) => {
-    setRooms((current) => current.filter((room) => room.id !== roomId));
-    setDraftsByRoom((current) => {
-      const next = { ...current };
-      delete next[roomId];
-      return next;
-    });
-    setSelectedRoomId((current) => (current === roomId ? null : current));
-  }, []);
+      router.refresh();
 
-  const handleUpdateRoomItems = useCallback((roomId: string, itemIds: string[]) => {
-    setRooms((current) =>
-      current.map((room) => (room.id === roomId ? { ...room, itemIds } : room)),
-    );
-  }, []);
+      return {
+        id: result.data.roomId,
+        name: values.name.trim(),
+        description: values.description.trim() || undefined,
+        itemIds: [],
+      };
+    },
+    [organizationId, router],
+  );
+
+  const handleUpdateRoom = useCallback(
+    async (roomId: string, values: CreateStorageRoomFormValues) => {
+      if (!organizationId) return;
+
+      const result = await updateStorageRoom(organizationId, roomId, values);
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
+
+      router.refresh();
+    },
+    [organizationId, router],
+  );
+
+  const handleDeleteRoom = useCallback(
+    async (roomId: string) => {
+      if (!organizationId) return;
+
+      const result = await deleteStorageRoom(organizationId, roomId);
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
+
+      setDraftsByRoom((current) => {
+        const next = { ...current };
+        delete next[roomId];
+        return next;
+      });
+      setSelectedRoomId((current) => (current === roomId ? null : current));
+      router.refresh();
+    },
+    [organizationId, router],
+  );
+
+  const handleUpdateRoomItems = useCallback(
+    async (roomId: string, itemIds: string[]) => {
+      if (!organizationId) return;
+
+      const result = await updateStorageRoomItems(organizationId, roomId, itemIds);
+      if ("error" in result) {
+        throw new Error(result.error);
+      }
+
+      router.refresh();
+    },
+    [organizationId, router],
+  );
 
   const handleCountChange = useCallback(
     (itemId: string, value: number | "") => {
@@ -96,8 +143,8 @@ export function InventoryPage() {
     [selectedRoomId],
   );
 
-  const handleSaveRoomCheck = useCallback(() => {
-    if (!selectedRoomId) return;
+  const handleSaveRoomCheck = useCallback(async () => {
+    if (!organizationId || !selectedRoomId) return;
 
     const room = rooms.find((entry) => entry.id === selectedRoomId);
     if (!room) return;
@@ -115,8 +162,6 @@ export function InventoryPage() {
 
         return {
           itemId: item.id,
-          name: item.name,
-          reportingUnit: item.reportingUnit,
           previousOnHand: item.onHand,
           countedQty,
         };
@@ -125,29 +170,19 @@ export function InventoryPage() {
 
     if (entries.length === 0) return;
 
-    const savedCheck: SavedRoomCheck = {
-      id: crypto.randomUUID(),
-      roomId: room.id,
-      roomName: room.name,
-      savedAt: new Date().toISOString(),
-      savedBy: "",
-      entries,
-    };
+    const result = await saveRoomCheck(organizationId, selectedRoomId, entries);
+    if ("error" in result) {
+      throw new Error(result.error);
+    }
 
-    setHistory((current) => [savedCheck, ...current]);
-    setCatalogItems((current) =>
-      current.map((item) => {
-        const entry = entries.find((saved) => saved.itemId === item.id);
-        return entry ? { ...item, onHand: entry.countedQty } : item;
-      }),
-    );
     setDraftsByRoom((current) => {
       const next = { ...current };
       delete next[selectedRoomId];
       return next;
     });
     setSaveMessage(`${room.name} check saved.`);
-  }, [catalogItems, draftsByRoom, rooms, selectedRoomId]);
+    router.refresh();
+  }, [catalogItems, draftsByRoom, organizationId, rooms, router, selectedRoomId]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -169,7 +204,13 @@ export function InventoryPage() {
         ))}
       </div>
 
-      {activeTab === "rooms" ? (
+      {!organizationId ? (
+        <p className="text-sm text-text-muted">
+          Select an organization in the sidebar to manage inventory.
+        </p>
+      ) : null}
+
+      {activeTab === "rooms" && organizationId ? (
         <StorageRoomsPanel
           rooms={rooms}
           catalogItems={catalogItems}
@@ -180,7 +221,7 @@ export function InventoryPage() {
         />
       ) : null}
 
-      {activeTab === "count" ? (
+      {activeTab === "count" && organizationId ? (
         <StorageCountPanel
           rooms={rooms}
           catalogItems={catalogItems}
@@ -195,7 +236,7 @@ export function InventoryPage() {
         />
       ) : null}
 
-      {activeTab === "history" ? (
+      {activeTab === "history" && organizationId ? (
         <StorageCheckHistoryPanel history={history} rooms={rooms} />
       ) : null}
     </div>

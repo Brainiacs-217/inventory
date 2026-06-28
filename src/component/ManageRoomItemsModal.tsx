@@ -12,7 +12,7 @@ type ManageRoomItemsModalProps = {
   roomName: string;
   catalogItems: StorageCatalogItem[];
   selectedItemIds: string[];
-  onSave: (itemIds: string[]) => void;
+  onSave: (itemIds: string[]) => Promise<void>;
 };
 
 const inputClassName =
@@ -28,6 +28,7 @@ export function ManageRoomItemsModal({
 }: ManageRoomItemsModalProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [query, setQuery] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -58,9 +59,14 @@ export function ManageRoomItemsModal({
     });
   }
 
-  function handleSave() {
-    onSave(Array.from(selected));
-    onClose();
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await onSave(Array.from(selected));
+      onClose();
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -86,9 +92,10 @@ export function ManageRoomItemsModal({
             <button
               type="button"
               onClick={handleSave}
-              className="rounded-md bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow"
+              disabled={saving}
+              className="rounded-md bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:opacity-50"
             >
-              Save items
+              {saving ? "Saving…" : "Save items"}
             </button>
           </div>
         </div>

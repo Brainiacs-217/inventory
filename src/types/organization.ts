@@ -9,8 +9,9 @@ export type Organization = {
 export type CreateOrganizationFormValues = {
   name: string;
   logoSrc: string | null;
+  logoFile: File | null;
 };
 
 export function createEmptyOrganizationFormValues(): CreateOrganizationFormValues {
-  return { name: "", logoSrc: null };
+  return { name: "", logoSrc: null, logoFile: null };
 }

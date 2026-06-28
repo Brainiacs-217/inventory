@@ -1,21 +1,15 @@
 "use client";
 
 import { BookOpen, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 import { CreateRecipeModal } from "@/component/CreateRecipeModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
-import {
-  computeTotalCost,
-  computeTotalIngredientCost,
-  parseOptionalNumber,
-} from "@/lib/recipeCost";
+import { createRecipe, deleteRecipes } from "@/lib/recipes/actions";
 import type { InventoryItem } from "@/types/item";
-import {
-  type CreateRecipeFormValues,
-  type Recipe,
-} from "@/types/recipe";
+import type { CreateRecipeFormValues, Recipe } from "@/types/recipe";
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
 
@@ -32,58 +26,39 @@ function formatYield(
   return unit ? `${yieldQuantity} ${unit}` : `${yieldQuantity}`;
 }
 
-function mapFormToRecipe(
-  values: CreateRecipeFormValues,
-  itemsById: Map<string, InventoryItem>,
-): Recipe {
-  const totalIngredientCost = computeTotalIngredientCost(
-    values.ingredients,
-    itemsById,
-  );
-  const miscCost = parseFloat(values.miscCost) || 0;
-  const totalCost = computeTotalCost(totalIngredientCost, miscCost);
-  const salesPrice = parseFloat(values.salesPrice) || 0;
-
-  return {
-    id: crypto.randomUUID(),
-    name: values.name.trim(),
-    yieldQuantity: parseOptionalNumber(values.yieldQuantity),
-    yieldUnit: values.yieldUnit.trim() || null,
-    servingSizeQuantity: parseOptionalNumber(values.servingSizeQuantity),
-    servingSizeUnit: values.servingSizeUnit.trim() || null,
-    salesPrice,
-    miscCost,
-    foodCost: totalCost,
-    menuPrice: salesPrice,
-    ingredientCount: values.ingredients.length,
-  };
-}
-
 type RecipesTableProps = {
-  recipes?: Recipe[];
-  catalogItems?: InventoryItem[];
+  recipes: Recipe[];
+  catalogItems: InventoryItem[];
+  organizationId: string | null;
 };
 
 export function RecipesTable({
-  recipes: initialRecipes = [],
-  catalogItems = [],
+  recipes,
+  catalogItems,
+  organizationId,
 }: RecipesTableProps) {
-  const [recipes, setRecipes] = useState(initialRecipes);
+  const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-
-  const itemsById = useMemo(
-    () => new Map(catalogItems.map((item) => [item.id, item])),
-    [catalogItems],
-  );
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const allSelected = recipes.length > 0 && selectedIds.size === recipes.length;
   const someSelected = selectedIds.size > 0;
   const selectedCount = selectedIds.size;
 
-  function handleSave(values: CreateRecipeFormValues) {
-    setRecipes((current) => [...current, mapFormToRecipe(values, itemsById)]);
+  async function handleSave(values: CreateRecipeFormValues) {
+    if (!organizationId) {
+      throw new Error("Select an organization before adding recipes.");
+    }
+
+    const result = await createRecipe(organizationId, values);
+    if ("error" in result) {
+      throw new Error(result.error);
+    }
+
+    router.refresh();
   }
 
   function toggleSelection(id: string) {
@@ -106,15 +81,33 @@ export function RecipesTable({
 
   function handleDeleteClick() {
     if (!someSelected) return;
+    setDeleteError(null);
     setDeleteConfirmOpen(true);
   }
 
-  function handleDeleteConfirm() {
-    setRecipes((current) =>
-      current.filter((recipe) => !selectedIds.has(recipe.id)),
-    );
+  async function handleDeleteConfirm() {
+    if (!organizationId || !someSelected) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    const result = await deleteRecipes(organizationId, Array.from(selectedIds));
+    if ("error" in result) {
+      setDeleteError(result.error);
+      setDeleting(false);
+      return;
+    }
+
     setSelectedIds(new Set());
+    setDeleting(false);
     setDeleteConfirmOpen(false);
+    router.refresh();
+  }
+
+  function handleDeleteCancel() {
+    if (deleting) return;
+    setDeleteConfirmOpen(false);
+    setDeleteError(null);
   }
 
   return (
@@ -129,14 +122,18 @@ export function RecipesTable({
               <p className="text-sm font-semibold tracking-tight text-text-primary">
                 {formatRecipeCount(recipes.length)}
               </p>
-              <p className="text-xs text-text-muted">In your catalog</p>
+              <p className="text-xs text-text-muted">
+                {!organizationId
+                  ? "Select an organization to view recipes"
+                  : "In your catalog"}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handleDeleteClick}
-              disabled={!someSelected}
+              disabled={!someSelected || !organizationId}
               className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-surface px-4 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border/80 disabled:hover:bg-surface disabled:hover:text-text-secondary"
             >
               <Trash2 className="size-4" strokeWidth={2} />
@@ -145,7 +142,8 @@ export function RecipesTable({
             <button
               type="button"
               onClick={() => setCreateOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow"
+              disabled={!organizationId}
+              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Plus className="size-4" strokeWidth={2} />
               Add recipe
@@ -189,6 +187,15 @@ export function RecipesTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
+              {recipes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm text-text-muted">
+                    {organizationId
+                      ? "No recipes yet. Add your first recipe to get started."
+                      : "Select an organization in the sidebar to manage recipes."}
+                  </td>
+                </tr>
+              ) : null}
               {recipes.map((recipe) => {
                 const costPercent =
                   recipe.menuPrice > 0
@@ -262,24 +269,29 @@ export function RecipesTable({
 
       <Modal
         open={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
+        onClose={handleDeleteCancel}
         title="Delete recipes"
         footer={
-          <div className="flex justify-end gap-2.5">
-            <button
-              type="button"
-              onClick={() => setDeleteConfirmOpen(false)}
-              className="rounded-md border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleDeleteConfirm}
-              className="rounded-md bg-error px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-error/90"
-            >
-              Delete
-            </button>
+          <div className="flex flex-col gap-2">
+            {deleteError && <p className="text-xs text-error">{deleteError}</p>}
+            <div className="flex justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={handleDeleteCancel}
+                disabled={deleting}
+                className="rounded-md border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="rounded-md bg-error px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-error/90 disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
           </div>
         }
       >

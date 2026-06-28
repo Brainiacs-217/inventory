@@ -19,7 +19,7 @@ import {
 type CreateItemModalProps = {
   open: boolean;
   onClose: () => void;
-  onSave: (values: CreateItemFormValues) => void;
+  onSave: (values: CreateItemFormValues) => Promise<void>;
   categories: string[];
   onAddCategory: (name: string) => void;
 };
@@ -163,10 +163,10 @@ function validateForm(values: CreateItemFormValues): FormErrors {
     }
   }
 
-  if (values.par.trim()) {
-    const par = parseFloat(values.par);
-    if (Number.isNaN(par) || par < 0) {
-      errors.par = "Par must be a valid number.";
+  if (values.parLevel.trim()) {
+    const parLevel = parseFloat(values.parLevel);
+    if (Number.isNaN(parLevel) || parLevel < 0) {
+      errors.parLevel = "Par must be a valid number.";
     }
   }
 
@@ -185,6 +185,7 @@ export function CreateItemModal({
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryError, setNewCategoryError] = useState<string | null>(null);
@@ -194,6 +195,7 @@ export function CreateItemModal({
     setValues(createEmptyItemFormValues());
     setErrors({});
     setSaving(false);
+    setSubmitError(null);
     setAddingCategory(false);
     setNewCategoryName("");
     setNewCategoryError(null);
@@ -263,7 +265,7 @@ export function CreateItemModal({
     setNewCategoryError(null);
   }
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const validationErrors = validateForm(values);
     if (Object.keys(validationErrors).length > 0) {
@@ -272,17 +274,29 @@ export function CreateItemModal({
     }
 
     setSaving(true);
-    onSave(values);
-    setSaving(false);
-    onClose();
+    setSubmitError(null);
+
+    try {
+      await onSave(values);
+      onClose();
+    } catch (error) {
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to save item.",
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   const footer = (
-    <div className="flex justify-end gap-2.5">
+    <div className="flex flex-col gap-2">
+      {submitError && <p className="text-xs text-error">{submitError}</p>}
+      <div className="flex justify-end gap-2.5">
       <button
         type="button"
         onClick={onClose}
-        className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
+        disabled={saving}
+        className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
       >
         Cancel
       </button>
@@ -292,8 +306,9 @@ export function CreateItemModal({
         disabled={saving}
         className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
       >
-        {saving ? "Saving..." : "Save item"}
+        {saving ? "Saving…" : "Save item"}
       </button>
+      </div>
     </div>
   );
 
@@ -582,15 +597,16 @@ export function CreateItemModal({
                   </p>
                 )}
               </Field>
-              <Field label="Par" error={errors.par}>
+              <Field label="Par" error={errors.parLevel}>
                 <input
                   type="number"
                   min="0"
                   step="any"
                   placeholder="Optional"
-                  value={values.par}
-                  onChange={(event) => updateField("par", event.target.value)}
+                  value={values.parLevel}
+                  onChange={(event) => updateField("parLevel", event.target.value)}
                   className={inputClassName}
+                  disabled={saving}
                 />
               </Field>
             </div>

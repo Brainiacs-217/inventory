@@ -11,7 +11,7 @@ import {
 type CreateStorageRoomModalProps = {
   open: boolean;
   onClose: () => void;
-  onSave: (values: CreateStorageRoomFormValues) => void;
+  onSave: (values: CreateStorageRoomFormValues) => Promise<void>;
   initialValues?: CreateStorageRoomFormValues;
   title?: string;
   saveLabel?: string;
@@ -32,6 +32,7 @@ export function CreateStorageRoomModal({
 }: CreateStorageRoomModalProps) {
   const [values, setValues] = useState(createEmptyStorageRoomFormValues());
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -40,15 +41,23 @@ export function CreateStorageRoomModal({
     }
   }, [open, initialValues]);
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const name = values.name.trim();
     if (!name) {
       setError("Room name is required.");
       return;
     }
-    onSave({ name, description: values.description.trim() });
-    onClose();
+
+    setSaving(true);
+    try {
+      await onSave({ name, description: values.description.trim() });
+      onClose();
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to save room.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -69,9 +78,10 @@ export function CreateStorageRoomModal({
           <button
             type="submit"
             form="create-storage-room-form"
-            className="rounded-md bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow"
+            disabled={saving}
+            className="rounded-md bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:opacity-50"
           >
-            {saveLabel}
+            {saving ? "Saving…" : saveLabel}
           </button>
         </div>
       }

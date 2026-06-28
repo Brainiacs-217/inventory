@@ -1,9 +1,19 @@
 import { InventoryPage } from "@/component/InventoryPage";
+import { getOrganizationInventory } from "@/lib/inventory/queries";
+import { getSelectedOrganizationId } from "@/lib/organizations/selectedOrg";
 
-export default function Page() {
+export default async function Page() {
+  const organizationId = await getSelectedOrganizationId();
+  const inventory = organizationId
+    ? await getOrganizationInventory(organizationId)
+    : { rooms: [], catalogItems: [], history: [] };
+
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      <InventoryPage />
-    </div>
+    <InventoryPage
+      organizationId={organizationId}
+      rooms={inventory.rooms}
+      catalogItems={inventory.catalogItems}
+      history={inventory.history}
+    />
   );
 }

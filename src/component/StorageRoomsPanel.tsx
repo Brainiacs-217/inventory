@@ -19,10 +19,10 @@ const CARD_CLASS =
 type StorageRoomsPanelProps = {
   rooms: StorageRoom[];
   catalogItems: StorageCatalogItem[];
-  onAddRoom: (values: CreateStorageRoomFormValues) => StorageRoom;
-  onUpdateRoom: (roomId: string, values: CreateStorageRoomFormValues) => void;
-  onDeleteRoom: (roomId: string) => void;
-  onUpdateRoomItems: (roomId: string, itemIds: string[]) => void;
+  onAddRoom: (values: CreateStorageRoomFormValues) => Promise<StorageRoom>;
+  onUpdateRoom: (roomId: string, values: CreateStorageRoomFormValues) => Promise<void>;
+  onDeleteRoom: (roomId: string) => Promise<void>;
+  onUpdateRoomItems: (roomId: string, itemIds: string[]) => Promise<void>;
 };
 
 function formatItemCount(count: number): string {
@@ -151,8 +151,8 @@ export function StorageRoomsPanel({
       <CreateStorageRoomModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onSave={(values) => {
-          const room = onAddRoom(values);
+        onSave={async (values) => {
+          const room = await onAddRoom(values);
           setManageItemsRoom(room);
         }}
       />
@@ -160,8 +160,8 @@ export function StorageRoomsPanel({
       <CreateStorageRoomModal
         open={renameRoom != null}
         onClose={() => setRenameRoom(null)}
-        onSave={(values) => {
-          if (renameRoom) onUpdateRoom(renameRoom.id, values);
+        onSave={async (values) => {
+          if (renameRoom) await onUpdateRoom(renameRoom.id, values);
         }}
         initialValues={
           renameRoom
@@ -198,8 +198,8 @@ export function StorageRoomsPanel({
             </button>
             <button
               type="button"
-              onClick={() => {
-                if (deleteRoom) onDeleteRoom(deleteRoom.id);
+              onClick={async () => {
+                if (deleteRoom) await onDeleteRoom(deleteRoom.id);
                 setDeleteRoom(null);
               }}
               className="rounded-md bg-error px-3.5 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-error/90"

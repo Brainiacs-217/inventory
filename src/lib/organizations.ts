@@ -3,22 +3,17 @@ import type { Organization } from "@/types/organization";
 export const defaultOrganizationId = "";
 
 export const ORG_STORAGE_KEY = "inventory:selectedOrgId";
-export const ORGS_LIST_STORAGE_KEY = "inventory:organizations";
 
-export function loadOrganizations(): Organization[] {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const stored = localStorage.getItem(ORGS_LIST_STORAGE_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored) as Organization[];
-  } catch {
-    return [];
-  }
-}
-
-export function saveOrganizations(organizations: Organization[]): void {
-  localStorage.setItem(ORGS_LIST_STORAGE_KEY, JSON.stringify(organizations));
+export function mapOrganizationFromDb(row: {
+  id: string;
+  name: string;
+  logo_url: string | null;
+}): Organization {
+  return {
+    id: row.id,
+    name: row.name,
+    ...(row.logo_url ? { logoSrc: row.logo_url } : {}),
+  };
 }
 
 export function getOrganization(

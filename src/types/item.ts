@@ -35,7 +35,7 @@ export type CreateItemFormValues = {
   baseUnit: string;
   cost: string;
   costManuallyEdited: boolean;
-  par: string;
+  parLevel: string;
   conversions: ItemConversion[];
   useCustomWeights: boolean;
   weights: ItemWeightSettings;
@@ -74,7 +74,7 @@ export function createEmptyItemFormValues(): CreateItemFormValues {
     baseUnit: "",
     cost: "",
     costManuallyEdited: false,
-    par: "",
+    parLevel: "",
     conversions: [],
     useCustomWeights: false,
     weights: {
