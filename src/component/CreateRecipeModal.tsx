@@ -16,7 +16,7 @@ import {
   computeTotalCost,
   computeTotalIngredientCost,
   parseOptionalNumber,
-} from "@/lib/recipeCost";
+} from "@/lib/recipes/cost";
 import type { InventoryItem } from "@/types/item";
 import {
   createEmptyRecipeFormValues,

@@ -4,12 +4,29 @@ export function getSquareEnv(): SquareEnv {
   return process.env.SQUARE_ENV === "production" ? "production" : "sandbox";
 }
 
-export function isSquareConfigured(): boolean {
+/** OAuth connect flow (Connect Square button). Requires app secret from the Square dashboard. */
+export function isSquareOAuthConfigured(): boolean {
   return Boolean(
     process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID &&
-      process.env.SQUARE_APPLICATION_SECRET &&
+      process.env.SQUARE_APPLICATION_SECRET?.trim() &&
       process.env.SQUARE_REDIRECT_URI,
   );
+}
+
+/** Sandbox static access token from Square Developer Dashboard → Credentials. */
+export function isSquareSandboxTokenConfigured(): boolean {
+  return (
+    getSquareEnv() === "sandbox" &&
+    Boolean(
+      process.env.NEXT_PUBLIC_SQUARE_APPLICATION_ID &&
+        process.env.SQUARE_ACCESS_TOKEN?.trim(),
+    )
+  );
+}
+
+/** App can talk to Square via OAuth and/or a sandbox access token. */
+export function isSquareConfigured(): boolean {
+  return isSquareOAuthConfigured() || isSquareSandboxTokenConfigured();
 }
 
 export function getSquareApplicationId(): string {
@@ -21,11 +38,19 @@ export function getSquareApplicationId(): string {
 }
 
 export function getSquareApplicationSecret(): string {
-  const secret = process.env.SQUARE_APPLICATION_SECRET;
+  const secret = process.env.SQUARE_APPLICATION_SECRET?.trim();
   if (!secret) {
     throw new Error("SQUARE_APPLICATION_SECRET is not set.");
   }
   return secret;
+}
+
+export function getSquareAccessToken(): string {
+  const token = process.env.SQUARE_ACCESS_TOKEN?.trim();
+  if (!token) {
+    throw new Error("SQUARE_ACCESS_TOKEN is not set.");
+  }
+  return token;
 }
 
 export function getSquareRedirectUri(): string {
@@ -41,4 +66,8 @@ export function getSquareConnectBaseUrl(): string {
   return env === "production"
     ? "https://connect.squareup.com"
     : "https://connect.squareupsandbox.com";
+}
+
+export function getSquareApiBaseUrl(): string {
+  return getSquareConnectBaseUrl();
 }

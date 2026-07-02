@@ -1,8 +1,10 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
+import { getSelectedOrganizationId } from "@/lib/organizations/selectedOrg";
+import { saveSquareConnectionFromOAuth } from "@/lib/square/connection";
 import { SQUARE_OAUTH_STATE_COOKIE } from "@/lib/square/constants";
-import { isSquareConfigured } from "@/lib/square/config";
+import { isSquareOAuthConfigured } from "@/lib/square/config";
 import { exchangeSquareAuthorizationCode } from "@/lib/square/oauth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,7 +20,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (!isSquareConfigured() || !code || !state) {
+  if (!isSquareOAuthConfigured() || !code || !state) {
     return NextResponse.redirect(`${origin}/dashboard?square_error=invalid_request`);
   }
 
@@ -39,6 +41,11 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=auth`);
   }
 
+  const organizationId = await getSelectedOrganizationId();
+  if (!organizationId) {
+    return NextResponse.redirect(`${origin}/dashboard?square_error=no_organization`);
+  }
+
   try {
     const tokens = await exchangeSquareAuthorizationCode(code);
 
@@ -51,8 +58,18 @@ export async function GET(request: Request) {
       throw new Error("Square returned an incomplete token response.");
     }
 
-    // TODO: persist SquareConnection for user/org in Supabase
-    // { merchantId, accessToken, refreshToken, expiresAt }
+    const result = await saveSquareConnectionFromOAuth(organizationId, {
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      merchant_id: tokens.merchant_id,
+      expires_at: tokens.expires_at,
+    });
+
+    if ("error" in result) {
+      return NextResponse.redirect(
+        `${origin}/dashboard?square_error=${encodeURIComponent(result.error)}`,
+      );
+    }
 
     return NextResponse.redirect(`${origin}/dashboard?square_connected=1`);
   } catch {

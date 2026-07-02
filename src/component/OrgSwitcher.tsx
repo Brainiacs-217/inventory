@@ -16,9 +16,9 @@ import { setSelectedOrganizationCookie } from "@/lib/organizations/setSelectedOr
 import { uploadOrgLogo } from "@/lib/organizations/storage";
 import {
   defaultOrganizationId,
-  getOrganization,
   ORG_STORAGE_KEY,
-} from "@/lib/organizations";
+} from "@/lib/organizations/constants";
+import { getOrganization } from "@/lib/organizations/utils";
 import { notifyOrganizationChanged } from "@/lib/organizations/useSelectedOrganizationId";
 import type { CreateOrganizationFormValues } from "@/types/organization";
 import type { Organization } from "@/types/organization";

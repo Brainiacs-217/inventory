@@ -5,13 +5,13 @@ import {
   recipeFieldGridClassName,
   recipeInputClassName,
 } from "@/component/recipe/formShared";
+import { formatCurrency } from "@/lib/formatCurrency";
 import {
   computeCostPercent,
   computeSalesProfit,
   computeTotalCost,
-  formatCurrency,
   formatPercent,
-} from "@/lib/recipeCost";
+} from "@/lib/recipes/cost";
 
 export type RecipeCostValues = {
   salesPrice: string;

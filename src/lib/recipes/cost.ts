@@ -167,10 +167,6 @@ export function parseOptionalNumber(value: string): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-export function formatCurrency(value: number): string {
-  return `$${value.toFixed(2)}`;
-}
-
 export function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }

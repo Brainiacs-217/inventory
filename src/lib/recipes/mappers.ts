@@ -1,4 +1,4 @@
-import { parseOptionalNumber } from "@/lib/recipeCost";
+import { parseOptionalNumber } from "@/lib/recipes/cost";
 import type { CreateRecipeFormValues, Recipe } from "@/types/recipe";
 import type { Tables, TablesInsert } from "@/types/database";
 

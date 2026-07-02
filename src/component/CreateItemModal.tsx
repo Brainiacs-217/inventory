@@ -4,7 +4,7 @@ import { ChevronDown, Plus } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
-import { calculateItemCost, formatCostValue } from "@/lib/itemCost";
+import { calculateItemCost, formatCostValue } from "@/lib/items/cost";
 import {
   BASE_UNITS,
   REPORTING_UNITS,

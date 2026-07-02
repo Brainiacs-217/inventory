@@ -3,10 +3,10 @@
 import { Trash2 } from "lucide-react";
 
 import { recipeInputClassName } from "@/component/recipe/formShared";
+import { formatCurrency } from "@/lib/formatCurrency";
 import {
   computeIngredientLineCost,
-  formatCurrency,
-} from "@/lib/recipeCost";
+} from "@/lib/recipes/cost";
 import type { InventoryItem } from "@/types/item";
 import type { RecipeIngredientInput } from "@/types/recipe";
 

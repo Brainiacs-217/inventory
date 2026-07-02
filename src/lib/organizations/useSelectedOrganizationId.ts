@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-import { ORG_STORAGE_KEY } from "@/lib/organizations";
+import { ORG_STORAGE_KEY } from "@/lib/organizations/constants";
 
 export const ORG_CHANGED_EVENT = "inventory:org-changed";
 

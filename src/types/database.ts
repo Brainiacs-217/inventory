@@ -376,6 +376,47 @@ export type Database = {
           },
         ];
       };
+      square_connections: {
+        Row: {
+          access_token: string;
+          created_at: string;
+          expires_at: string;
+          id: string;
+          merchant_id: string;
+          organization_id: string;
+          refresh_token: string;
+          updated_at: string;
+        };
+        Insert: {
+          access_token: string;
+          created_at?: string;
+          expires_at: string;
+          id?: string;
+          merchant_id: string;
+          organization_id: string;
+          refresh_token: string;
+          updated_at?: string;
+        };
+        Update: {
+          access_token?: string;
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          merchant_id?: string;
+          organization_id?: string;
+          refresh_token?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "square_connections_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       storage_room_items: {
         Row: {
           item_id: string;

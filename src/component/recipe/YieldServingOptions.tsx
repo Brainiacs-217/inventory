@@ -8,12 +8,12 @@ import {
   recipeSelectClassName,
 } from "@/component/recipe/formShared";
 import { UNITS_OF_MEASURE } from "@/lib/lookups";
+import { formatCurrency } from "@/lib/formatCurrency";
 import {
   computeCostPerServing,
   computeServingsPerBatch,
-  formatCurrency,
   parseOptionalNumber,
-} from "@/lib/recipeCost";
+} from "@/lib/recipes/cost";
 
 export type YieldServingValues = {
   yieldQuantity: string;

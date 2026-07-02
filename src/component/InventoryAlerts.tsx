@@ -4,7 +4,7 @@ import {
   getAlertLabel,
   getInventoryAlerts,
   getShortDetail,
-} from "@/lib/inventoryAlerts";
+} from "@/lib/inventory/alerts";
 import type { InventoryAlertType, InventoryCount } from "@/types/inventory";
 
 const CARD_CLASS =

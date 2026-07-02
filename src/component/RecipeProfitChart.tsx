@@ -25,7 +25,7 @@ import {
   CHART_TOOLTIP_PROPS,
 } from "@/lib/chartInteraction";
 import type { RecipeSales } from "@/types/dashboard";
-import { useFollowCursorTooltip } from "@/lib/useFollowCursorTooltip";
+import { useFollowCursorTooltip } from "@/hooks/useFollowCursorTooltip";
 
 const CHART_CARD_CLASS =
   "flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";

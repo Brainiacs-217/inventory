@@ -6,7 +6,7 @@ import { getOrganizationItems } from "@/lib/items/queries";
 import {
   computeTotalCost,
   computeTotalIngredientCost,
-} from "@/lib/recipeCost";
+} from "@/lib/recipes/cost";
 import {
   mapFormToRecipeInsert,
   mapRecipeRowToRecipe,

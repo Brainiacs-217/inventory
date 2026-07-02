@@ -2,7 +2,7 @@
 
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
-import { mapOrganizationFromDb } from "@/lib/organizations";
+import { getUserOrganizations } from "@/lib/organizations/queries";
 import type { Organization } from "@/types/organization";
 import type { Tables } from "@/types/database";
 
@@ -92,27 +92,10 @@ export async function fetchUserOrganizations(): Promise<
     return { error: "Supabase is not configured. Check your environment variables." };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: { organizations: [] } };
+  try {
+    const organizations = await getUserOrganizations();
+    return { data: { organizations } };
+  } catch {
+    return { error: "Failed to load organizations." };
   }
-
-  const { data, error } = await supabase
-    .from("organizations")
-    .select("id, name, logo_url")
-    .order("name");
-
-  if (error) {
-    return { error: error.message };
-  }
-
-  return {
-    data: {
-      organizations: (data ?? []).map(mapOrganizationFromDb),
-    },
-  };
 }
