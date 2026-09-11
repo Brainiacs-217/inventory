@@ -4,11 +4,7 @@ import { ArrowRight, ClipboardList } from "lucide-react";
 import { useState } from "react";
 
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
-import type {
-  SavedRoomCheck,
-  StorageCatalogItem,
-  StorageRoom,
-} from "@/types/storage";
+import type { StorageCatalogItem, StorageRoom } from "@/types/storage";
 
 const CARD_CLASS =
   "w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
@@ -16,18 +12,17 @@ const CARD_CLASS =
 const inputClassName =
   "w-24 rounded-sm border border-border/80 bg-surface px-2.5 py-1.5 text-right text-sm text-text-primary shadow-sm transition-[border-color,box-shadow] outline-none hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15";
 
-type RoomCountStatus = "not_started" | "in_progress" | "saved_today" | "needs_setup";
+type RoomCountStatus = "not_started" | "in_progress" | "needs_setup";
 
 type StorageCountPanelProps = {
   rooms: StorageRoom[];
   catalogItems: StorageCatalogItem[];
   selectedRoomId: string | null;
   draftsByRoom: Record<string, Record<string, number | "">>;
-  history: SavedRoomCheck[];
   saveMessage: string | null;
   onSelectRoom: (roomId: string) => void;
   onCountChange: (itemId: string, value: number | "") => void;
-  onSaveRoomCheck: () => Promise<void>;
+  onSaveRoomCount: () => Promise<void>;
   onGoToRoomsTab: () => void;
 };
 
@@ -35,20 +30,9 @@ function getCatalogItemMap(items: StorageCatalogItem[]): Map<string, StorageCata
   return new Map(items.map((item) => [item.id, item]));
 }
 
-function isSavedToday(isoDate: string): boolean {
-  const saved = new Date(isoDate);
-  const now = new Date();
-  return (
-    saved.getFullYear() === now.getFullYear() &&
-    saved.getMonth() === now.getMonth() &&
-    saved.getDate() === now.getDate()
-  );
-}
-
 function getRoomStatus(
   room: StorageRoom,
   draftCounts: Record<string, number | "">,
-  history: SavedRoomCheck[],
 ): RoomCountStatus {
   if (room.itemIds.length === 0) return "needs_setup";
 
@@ -57,11 +41,6 @@ function getRoomStatus(
     return value !== "" && value !== undefined;
   });
   if (hasDraft) return "in_progress";
-
-  const savedToday = history.some(
-    (check) => check.roomId === room.id && isSavedToday(check.savedAt),
-  );
-  if (savedToday) return "saved_today";
 
   return "not_started";
 }
@@ -72,8 +51,6 @@ function statusLabel(status: RoomCountStatus): string {
       return "Needs setup";
     case "in_progress":
       return "In progress";
-    case "saved_today":
-      return "Saved today";
     default:
       return "Ready to count";
   }
@@ -85,8 +62,6 @@ function statusClass(status: RoomCountStatus): string {
       return "bg-warning/15 text-warning";
     case "in_progress":
       return "bg-accent/15 text-text-primary";
-    case "saved_today":
-      return "bg-success/10 text-success";
     default:
       return "bg-surface-muted text-text-muted";
   }
@@ -101,11 +76,10 @@ export function StorageCountPanel({
   catalogItems,
   selectedRoomId,
   draftsByRoom,
-  history,
   saveMessage,
   onSelectRoom,
   onCountChange,
-  onSaveRoomCheck,
+  onSaveRoomCount,
   onGoToRoomsTab,
 }: StorageCountPanelProps) {
   const [saving, setSaving] = useState(false);
@@ -175,7 +149,7 @@ export function StorageCountPanel({
             <ul className="px-2 pb-3 lg:pb-4">
               {rooms.map((room) => {
                 const roomDraft = draftsByRoom[room.id] ?? {};
-                const status = getRoomStatus(room, roomDraft, history);
+                const status = getRoomStatus(room, roomDraft);
                 const isSelected = room.id === selectedRoomId;
                 const needsSetup = status === "needs_setup";
                 return (
@@ -311,7 +285,7 @@ export function StorageCountPanel({
                   onClick={async () => {
                     setSaving(true);
                     try {
-                      await onSaveRoomCheck();
+                      await onSaveRoomCount();
                     } finally {
                       setSaving(false);
                     }
@@ -319,7 +293,7 @@ export function StorageCountPanel({
                   disabled={!canSave || saving}
                   className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-accent disabled:hover:shadow-none"
                 >
-                  {saving ? "Saving…" : `Save ${selectedRoom.name} check`}
+                  {saving ? "Saving…" : `Save ${selectedRoom.name} count`}
                 </button>
               </div>
             </>

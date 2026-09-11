@@ -251,7 +251,7 @@ export function AuthForm() {
         <button
           type="button"
           onClick={toggleMode}
-          className="font-medium text-brand underline-offset-4 hover:underline"
+          className="font-medium text-link underline-offset-4 hover:text-link-hover hover:underline"
         >
           {mode === "login" ? "Sign up" : "Log in"}
         </button>

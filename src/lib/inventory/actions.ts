@@ -144,10 +144,9 @@ export async function updateStorageRoomItems(
   return {};
 }
 
-export async function saveRoomCheck(
+export async function saveRoomCount(
   organizationId: string,
-  roomId: string,
-  entries: Array<{ itemId: string; previousOnHand: number; countedQty: number }>,
+  entries: Array<{ itemId: string; countedQty: number }>,
 ): Promise<ActionError | Record<string, never>> {
   if (!isSupabaseConfigured()) {
     return { error: "Supabase is not configured." };
@@ -163,29 +162,6 @@ export async function saveRoomCheck(
   } = await supabase.auth.getUser();
 
   if (!user) return { error: "You must be signed in." };
-
-  const { data: check, error: checkError } = await supabase
-    .from("inventory_checks")
-    .insert({
-      organization_id: organizationId,
-      room_id: roomId,
-      saved_by: user.id,
-    })
-    .select("id")
-    .single();
-
-  if (checkError) return { error: checkError.message };
-
-  const { error: linesError } = await supabase.from("inventory_check_lines").insert(
-    entries.map((entry) => ({
-      check_id: check.id,
-      item_id: entry.itemId,
-      previous_on_hand: entry.previousOnHand,
-      counted_qty: entry.countedQty,
-    })),
-  );
-
-  if (linesError) return { error: linesError.message };
 
   const now = new Date().toISOString();
   for (const entry of entries) {

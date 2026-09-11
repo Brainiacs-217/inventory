@@ -25,8 +25,6 @@ export { createEmptyRecipeFormValues, createRecipeIngredientInput } from "./reci
 export type {
   CreateStorageRoomFormValues,
   InventoryTab,
-  SavedRoomCheck,
-  SavedRoomCheckEntry,
   StorageCatalogItem,
   StorageRoom,
 } from "./storage";

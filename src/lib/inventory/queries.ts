@@ -1,22 +1,20 @@
 import {
-  mapCheckRowToSavedRoomCheck,
   mapItemRowToStorageCatalogItem,
   mapStorageRoomRow,
 } from "@/lib/inventory/mappers";
 import { createClient } from "@/lib/supabase/server";
-import type { SavedRoomCheck, StorageCatalogItem, StorageRoom } from "@/types/storage";
+import type { StorageCatalogItem, StorageRoom } from "@/types/storage";
 import type { Tables } from "@/types/database";
 
 export type OrganizationInventoryData = {
   rooms: StorageRoom[];
   catalogItems: StorageCatalogItem[];
-  history: SavedRoomCheck[];
 };
 
 export async function getOrganizationInventory(
   organizationId: string,
 ): Promise<OrganizationInventoryData> {
-  const empty = { rooms: [], catalogItems: [], history: [] };
+  const empty = { rooms: [], catalogItems: [] };
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,7 +22,7 @@ export async function getOrganizationInventory(
 
   if (!user) return empty;
 
-  const [roomsResult, itemsResult, historyResult] = await Promise.all([
+  const [roomsResult, itemsResult] = await Promise.all([
     supabase
       .from("storage_rooms")
       .select("*, storage_room_items(item_id)")
@@ -36,13 +34,6 @@ export async function getOrganizationInventory(
       .eq("organization_id", organizationId)
       .eq("is_active", true)
       .order("name"),
-    supabase
-      .from("inventory_checks")
-      .select(
-        "*, storage_rooms(name), inventory_check_lines(*, items(name, unit_name, unit_size, unit_of_measure))",
-      )
-      .eq("organization_id", organizationId)
-      .order("saved_at", { ascending: false }),
   ]);
 
   return {
@@ -54,6 +45,5 @@ export async function getOrganizationInventory(
     catalogItems: (itemsResult.data ?? []).map((row) =>
       mapItemRowToStorageCatalogItem(row as Tables<"items">),
     ),
-    history: (historyResult.data ?? []).map((row) => mapCheckRowToSavedRoomCheck(row as never)),
   };
 }

@@ -6,14 +6,13 @@ export default async function Page() {
   const organizationId = await getSelectedOrganizationId();
   const inventory = organizationId
     ? await getOrganizationInventory(organizationId)
-    : { rooms: [], catalogItems: [], history: [] };
+    : { rooms: [], catalogItems: [] };
 
   return (
     <InventoryPage
       organizationId={organizationId}
       rooms={inventory.rooms}
       catalogItems={inventory.catalogItems}
-      history={inventory.history}
     />
   );
 }

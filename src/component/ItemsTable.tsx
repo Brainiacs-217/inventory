@@ -4,11 +4,13 @@ import { Package, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
+import { CreateFoodItemModal } from "@/component/CreateFoodItemModal";
 import { CreateItemModal } from "@/component/CreateItemModal";
+import { CreateSupplyItemModal } from "@/component/CreateSupplyItemModal";
 import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
 import { createItem, deleteItems } from "@/lib/items/actions";
-import { DEFAULT_ITEM_CATEGORIES } from "@/lib/lookups";
+import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/lookups";
 import type { CreateItemFormValues, InventoryItem } from "@/types/item";
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
@@ -17,10 +19,15 @@ function formatItemCount(count: number): string {
   return count === 1 ? "1 item" : `${count} items`;
 }
 
-function mergeCategories(base: string[], items: InventoryItem[]): string[] {
-  return [...new Set([...base, ...items.map((item) => item.category)])].sort((a, b) =>
-    a.localeCompare(b),
-  );
+function sectionEmptyLabel(section: ItemCategory): string {
+  switch (section) {
+    case "Beverage":
+      return "No beverage items yet. Add your first beverage to get started.";
+    case "Food":
+      return "No food items yet. Add your first food item to get started.";
+    case "Supply":
+      return "No supply items yet. Add your first supply to get started.";
+  }
 }
 
 type ItemsTableProps = {
@@ -30,19 +37,20 @@ type ItemsTableProps = {
 
 export function ItemsTable({ items, organizationId }: ItemsTableProps) {
   const router = useRouter();
+  const [activeSection, setActiveSection] = useState<ItemCategory>("Food");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
-  const categories = useMemo(
-    () => mergeCategories([...DEFAULT_ITEM_CATEGORIES, ...customCategories], items),
-    [customCategories, items],
+  const visibleItems = useMemo(
+    () => items.filter((item) => item.category === activeSection),
+    [activeSection, items],
   );
 
-  const allSelected = items.length > 0 && selectedIds.size === items.length;
+  const allSelected =
+    visibleItems.length > 0 && selectedIds.size === visibleItems.length;
   const someSelected = selectedIds.size > 0;
   const selectedCount = selectedIds.size;
 
@@ -59,12 +67,6 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
     router.refresh();
   }
 
-  function handleAddCategory(name: string) {
-    setCustomCategories((current) =>
-      current.includes(name) ? current : [...current, name],
-    );
-  }
-
   function toggleItemSelection(id: string) {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -78,7 +80,14 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
   }
 
   function toggleSelectAll() {
-    setSelectedIds(allSelected ? new Set() : new Set(items.map((item) => item.id)));
+    setSelectedIds(
+      allSelected ? new Set() : new Set(visibleItems.map((item) => item.id)),
+    );
+  }
+
+  function handleSectionChange(section: ItemCategory) {
+    setActiveSection(section);
+    setSelectedIds(new Set());
   }
 
   function handleDeleteClick() {
@@ -114,6 +123,23 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
 
   return (
     <>
+      <div className="mb-4 inline-flex w-fit rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
+        {ITEM_CATEGORIES.map((section) => (
+          <button
+            key={section}
+            type="button"
+            onClick={() => handleSectionChange(section)}
+            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeSection === section
+                ? "bg-sidebar-active text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {section}
+          </button>
+        ))}
+      </div>
+
       <div className="w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/80 bg-surface px-5 py-3.5">
           <div className="flex items-center gap-3">
@@ -122,12 +148,12 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
             </div>
             <div>
               <p className="text-sm font-semibold tracking-tight text-text-primary">
-                {formatItemCount(items.length)}
+                {formatItemCount(visibleItems.length)}
               </p>
               <p className="text-xs text-text-muted">
                 {!organizationId
                   ? "Select an organization to view items"
-                  : "In your catalog"}
+                  : `${activeSection} in your catalog`}
               </p>
             </div>
           </div>
@@ -152,7 +178,6 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
             </button>
           </div>
         </div>
-
 
         <div className="overflow-x-auto">
           <table className="w-full table-fixed border-collapse text-sm">
@@ -192,16 +217,16 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
-              {items.length === 0 ? (
+              {visibleItems.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-5 py-10 text-center text-sm text-text-muted">
                     {organizationId
-                      ? "No items yet. Add your first item to get started."
+                      ? sectionEmptyLabel(activeSection)
                       : "Select an organization in the sidebar to manage items."}
                   </td>
                 </tr>
               ) : null}
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <tr
                   key={item.id}
                   className="group bg-surface transition-colors hover:bg-surface-muted/40"
@@ -284,11 +309,19 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
       </div>
 
       <CreateItemModal
-        open={createOpen}
+        open={createOpen && activeSection === "Beverage"}
         onClose={() => setCreateOpen(false)}
         onSave={handleSave}
-        categories={categories}
-        onAddCategory={handleAddCategory}
+      />
+
+      <CreateFoodItemModal
+        open={createOpen && activeSection === "Food"}
+        onClose={() => setCreateOpen(false)}
+      />
+
+      <CreateSupplyItemModal
+        open={createOpen && activeSection === "Supply"}
+        onClose={() => setCreateOpen(false)}
       />
 
       <Modal
@@ -321,7 +354,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
       >
         <p className="text-sm text-text-secondary">
           {allSelected
-            ? "Are you sure you want to delete all items?"
+            ? `Are you sure you want to delete all ${activeSection.toLowerCase()} items?`
             : `Are you sure you want to delete ${selectedCount} selected ${selectedCount === 1 ? "item" : "items"}?`}
         </p>
       </Modal>

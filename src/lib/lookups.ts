@@ -1,9 +1,15 @@
-export const DEFAULT_ITEM_CATEGORIES = [
+export const ITEM_CATEGORIES = ["Food", "Beverage", "Supply"] as const;
+
+export type ItemCategory = (typeof ITEM_CATEGORIES)[number];
+
+export const BEVERAGE_SUB_CATEGORIES = [
   "Beer",
-  "Dairy",
-  "Toppings",
-  "Produce",
-  "Dry Goods",
+  "Wine",
+  "Spirits",
+  "Soft Drink",
+  "Juice",
+  "Water",
+  "Other",
 ] as const;
 
 export const VENDORS = [

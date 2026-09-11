@@ -3,20 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-import { StorageCheckHistoryPanel } from "@/component/StorageCheckHistoryPanel";
 import { StorageCountPanel } from "@/component/StorageCountPanel";
 import { StorageRoomsPanel } from "@/component/StorageRoomsPanel";
 import {
   createStorageRoom,
   deleteStorageRoom,
-  saveRoomCheck,
+  saveRoomCount,
   updateStorageRoom,
   updateStorageRoomItems,
 } from "@/lib/inventory/actions";
 import type {
   CreateStorageRoomFormValues,
   InventoryTab,
-  SavedRoomCheck,
   StorageCatalogItem,
   StorageRoom,
 } from "@/types/storage";
@@ -24,7 +22,6 @@ import type {
 const tabs: { id: InventoryTab; label: string; step: number }[] = [
   { id: "rooms", label: "Setup rooms", step: 1 },
   { id: "count", label: "Count", step: 2 },
-  { id: "history", label: "History", step: 3 },
 ];
 
 type RoomDrafts = Record<string, Record<string, number | "">>;
@@ -37,14 +34,12 @@ type InventoryPageProps = {
   organizationId: string | null;
   rooms: StorageRoom[];
   catalogItems: StorageCatalogItem[];
-  history: SavedRoomCheck[];
 };
 
 export function InventoryPage({
   organizationId,
   rooms,
   catalogItems,
-  history,
 }: InventoryPageProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<InventoryTab>("rooms");
@@ -143,7 +138,7 @@ export function InventoryPage({
     [selectedRoomId],
   );
 
-  const handleSaveRoomCheck = useCallback(async () => {
+  const handleSaveRoomCount = useCallback(async () => {
     if (!organizationId || !selectedRoomId) return;
 
     const room = rooms.find((entry) => entry.id === selectedRoomId);
@@ -162,7 +157,6 @@ export function InventoryPage({
 
         return {
           itemId: item.id,
-          previousOnHand: item.onHand,
           countedQty,
         };
       })
@@ -170,7 +164,7 @@ export function InventoryPage({
 
     if (entries.length === 0) return;
 
-    const result = await saveRoomCheck(organizationId, selectedRoomId, entries);
+    const result = await saveRoomCount(organizationId, entries);
     if ("error" in result) {
       throw new Error(result.error);
     }
@@ -180,7 +174,7 @@ export function InventoryPage({
       delete next[selectedRoomId];
       return next;
     });
-    setSaveMessage(`${room.name} check saved.`);
+    setSaveMessage(`${room.name} count saved.`);
     router.refresh();
   }, [catalogItems, draftsByRoom, organizationId, rooms, router, selectedRoomId]);
 
@@ -227,17 +221,12 @@ export function InventoryPage({
           catalogItems={catalogItems}
           selectedRoomId={selectedRoomId}
           draftsByRoom={draftsByRoom}
-          history={history}
           saveMessage={saveMessage}
           onSelectRoom={setSelectedRoomId}
           onCountChange={handleCountChange}
-          onSaveRoomCheck={handleSaveRoomCheck}
+          onSaveRoomCount={handleSaveRoomCount}
           onGoToRoomsTab={() => setActiveTab("rooms")}
         />
-      ) : null}
-
-      {activeTab === "history" && organizationId ? (
-        <StorageCheckHistoryPanel history={history} rooms={rooms} />
       ) : null}
     </div>
   );

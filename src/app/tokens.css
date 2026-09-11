@@ -20,6 +20,8 @@
   --color-brand: #171717;
   --color-brand-foreground: #ffffff;
   --color-brand-hover: #404040;
+  --color-link: #60a5fa;
+  --color-link-hover: #3b82f6;
 
   --color-accent: #e9b94f;
   --color-accent-hover: #d4a23f;
@@ -61,6 +63,8 @@
     --color-brand: #171717;
     --color-brand-foreground: #ffffff;
     --color-brand-hover: #404040;
+    --color-link: #60a5fa;
+    --color-link-hover: #3b82f6;
     --color-accent: #e9b94f;
     --color-accent-hover: #d4a23f;
     --color-border: #e5e5e5;
