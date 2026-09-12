@@ -1,22 +1,99 @@
 "use client";
 
-import { Package, Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 
 import { CreateFoodItemModal } from "@/component/CreateFoodItemModal";
 import { CreateItemModal } from "@/component/CreateItemModal";
 import { CreateSupplyItemModal } from "@/component/CreateSupplyItemModal";
 import { Modal } from "@/component/Modal";
-import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
 import { createItem, deleteItems } from "@/lib/items/actions";
 import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/lookups";
 import type { CreateItemFormValues, InventoryItem } from "@/types/item";
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
+const NO_VENDOR = "__none__";
 
-function formatItemCount(count: number): string {
-  return count === 1 ? "1 item" : `${count} items`;
+const SEARCH_INPUT_CLASS =
+  "w-full rounded-md border border-border/80 bg-surface py-2 pl-9 pr-3 text-sm text-text-primary shadow-sm outline-none placeholder:text-text-muted/60 transition-[border-color,box-shadow] hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50";
+
+const FILTER_SELECT_CLASS =
+  "w-full appearance-none rounded-md border border-border/80 bg-surface py-2 pl-3 pr-8 text-sm text-text-primary shadow-sm outline-none transition-[border-color,box-shadow] hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50";
+
+function formatItemCount(
+  visibleCount: number,
+  sectionCount: number,
+  isFiltering: boolean,
+): string {
+  if (!isFiltering || sectionCount === 0) {
+    return sectionCount === 1 ? "1 item" : `${sectionCount} items`;
+  }
+  return `${visibleCount} of ${sectionCount} ${sectionCount === 1 ? "item" : "items"}`;
+}
+
+function itemMatchesQuery(item: InventoryItem, query: string): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return [item.name, item.sku, item.vendor].some((value) =>
+    value.toLowerCase().includes(normalized),
+  );
+}
+
+function itemCategoryLabel(item: InventoryItem): string {
+  return item.subcategory || item.category;
+}
+
+function itemVendorKey(item: InventoryItem): string {
+  return item.vendor.trim() ? item.vendor : NO_VENDOR;
+}
+
+function uniqueSorted(values: Iterable<string>): string[] {
+  return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+}
+
+function itemMatchesFilters(
+  item: InventoryItem,
+  query: string,
+  category: string,
+  vendor: string,
+): boolean {
+  if (!itemMatchesQuery(item, query)) return false;
+  if (category && itemCategoryLabel(item) !== category) return false;
+  if (vendor && itemVendorKey(item) !== vendor) return false;
+  return true;
+}
+
+function FilterSelect({
+  value,
+  onChange,
+  label,
+  disabled,
+  children,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="relative min-w-34 max-w-48">
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        aria-label={label}
+        className={FILTER_SELECT_CLASS}
+      >
+        {children}
+      </select>
+      <ChevronDown
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-text-muted"
+      />
+    </div>
+  );
 }
 
 function sectionEmptyLabel(section: ItemCategory): string {
@@ -37,20 +114,53 @@ type ItemsTableProps = {
 
 export function ItemsTable({ items, organizationId }: ItemsTableProps) {
   const router = useRouter();
-  const [activeSection, setActiveSection] = useState<ItemCategory>("Food");
+  const [activeSection, setActiveSection] = useState<ItemCategory>("Beverage");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [vendorFilter, setVendorFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const visibleItems = useMemo(
+  const sectionItems = useMemo(
     () => items.filter((item) => item.category === activeSection),
     [activeSection, items],
   );
+  const isFiltering =
+    searchQuery.trim().length > 0 ||
+    categoryFilter.length > 0 ||
+    vendorFilter.length > 0;
+  const visibleItems = useMemo(
+    () =>
+      isFiltering
+        ? sectionItems.filter((item) =>
+            itemMatchesFilters(
+              item,
+              searchQuery,
+              categoryFilter,
+              vendorFilter,
+            ),
+          )
+        : sectionItems,
+    [categoryFilter, isFiltering, searchQuery, sectionItems, vendorFilter],
+  );
+  const categoryOptions = useMemo(
+    () => uniqueSorted(sectionItems.map(itemCategoryLabel)),
+    [sectionItems],
+  );
+  const vendorOptions = useMemo(
+    () => uniqueSorted(sectionItems.map(itemVendorKey)),
+    [sectionItems],
+  );
 
   const allSelected =
-    visibleItems.length > 0 && selectedIds.size === visibleItems.length;
+    visibleItems.length > 0 &&
+    visibleItems.every((item) => selectedIds.has(item.id));
+  const someVisibleSelected = visibleItems.some((item) =>
+    selectedIds.has(item.id),
+  );
   const someSelected = selectedIds.size > 0;
   const selectedCount = selectedIds.size;
 
@@ -80,14 +190,32 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
   }
 
   function toggleSelectAll() {
-    setSelectedIds(
-      allSelected ? new Set() : new Set(visibleItems.map((item) => item.id)),
-    );
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allSelected) {
+        for (const item of visibleItems) {
+          next.delete(item.id);
+        }
+        return next;
+      }
+      for (const item of visibleItems) {
+        next.add(item.id);
+      }
+      return next;
+    });
   }
 
   function handleSectionChange(section: ItemCategory) {
     setActiveSection(section);
     setSelectedIds(new Set());
+    setCategoryFilter("");
+    setVendorFilter("");
+  }
+
+  function handleClearFilters() {
+    setSearchQuery("");
+    setCategoryFilter("");
+    setVendorFilter("");
   }
 
   function handleDeleteClick() {
@@ -123,41 +251,89 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
 
   return (
     <>
-      <div className="mb-4 inline-flex w-fit rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
-        {ITEM_CATEGORIES.map((section) => (
-          <button
-            key={section}
-            type="button"
-            onClick={() => handleSectionChange(section)}
-            className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-              activeSection === section
-                ? "bg-sidebar-active text-text-primary shadow-sm"
-                : "text-text-muted hover:text-text-primary"
-            }`}
-          >
-            {section}
-          </button>
-        ))}
-      </div>
-
-      <div className="w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/80 bg-surface px-5 py-3.5">
-          <div className="flex items-center gap-3">
-            <div className={CHART_ICON_BADGE_CLASS}>
-              <Package className="size-4 text-text-muted" strokeWidth={1.75} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-tight text-text-primary">
-                {formatItemCount(visibleItems.length)}
-              </p>
-              <p className="text-xs text-text-muted">
-                {!organizationId
-                  ? "Select an organization to view items"
-                  : `${activeSection} in your catalog`}
-              </p>
-            </div>
+      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+        <div className="mb-4 flex shrink-0 flex-wrap items-center gap-3">
+          <div className="inline-flex w-fit rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
+            {ITEM_CATEGORIES.map((section) => (
+              <button
+                key={section}
+                type="button"
+                onClick={() => handleSectionChange(section)}
+                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                  activeSection === section
+                    ? "bg-sidebar-active text-text-primary shadow-sm"
+                    : "text-text-muted hover:text-text-primary"
+                }`}
+              >
+                {section}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
+          <p className="text-sm text-text-muted">
+            {formatItemCount(
+              visibleItems.length,
+              sectionItems.length,
+              isFiltering,
+            )}
+          </p>
+        </div>
+
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl rounded-b-none border border-b-0 border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border/80 bg-surface px-5 py-3.5">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div className="relative min-w-48 max-w-sm flex-1">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-text-muted"
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search items…"
+                disabled={!organizationId}
+                aria-label="Search items"
+                className={SEARCH_INPUT_CLASS}
+              />
+            </div>
+            <FilterSelect
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              label="Filter by category"
+              disabled={!organizationId}
+            >
+              <option value="">All categories</option>
+              {categoryOptions.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </FilterSelect>
+            <FilterSelect
+              value={vendorFilter}
+              onChange={setVendorFilter}
+              label="Filter by vendor"
+              disabled={!organizationId}
+            >
+              <option value="">All vendors</option>
+              {vendorOptions.map((vendor) => (
+                <option key={vendor} value={vendor}>
+                  {vendor === NO_VENDOR ? "No vendor" : vendor}
+                </option>
+              ))}
+            </FilterSelect>
+            {isFiltering ? (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text-primary"
+              >
+                <X className="size-3.5" strokeWidth={2} />
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={handleDeleteClick}
@@ -179,20 +355,19 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="scrollbar-hidden min-h-0 flex-1 overflow-auto overscroll-none">
           <table className="w-full table-fixed border-collapse text-sm">
             <colgroup>
               <col className="w-11" />
-              <col className="w-[15%]" />
-              <col className="w-[15%]" />
-              <col className="w-[13%]" />
-              <col className="w-[11%]" />
+              <col className="w-[32%]" />
+              <col className="w-[16%]" />
+              <col className="w-[10%]" />
+              <col className="w-[12%]" />
               <col className="w-[14%]" />
-              <col className="w-[9%]" />
-              <col className="w-[21%]" />
+              <col className="w-[16%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
-              <tr className="border-b border-border/80 bg-surface-muted/80 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted backdrop-blur-sm">
+              <tr className="border-b border-border/80 bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                 <th className={SELECT_CELL_CLASS}>
                   <input
                     type="checkbox"
@@ -200,7 +375,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                     checked={allSelected}
                     ref={(input) => {
                       if (input) {
-                        input.indeterminate = someSelected && !allSelected;
+                        input.indeterminate = someVisibleSelected && !allSelected;
                       }
                     }}
                     onChange={toggleSelectAll}
@@ -212,16 +387,17 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                 <th className="px-3 py-3">Cost</th>
                 <th className="px-3 py-3">SKU</th>
                 <th className="px-3 py-3">Category</th>
-                <th className="px-3 py-3">GL Code</th>
                 <th className="px-3 py-3">Vendor</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {visibleItems.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-sm text-text-muted">
+                  <td colSpan={7} className="px-5 py-10 text-center text-sm text-text-muted">
                     {organizationId
-                      ? sectionEmptyLabel(activeSection)
+                      ? isFiltering && sectionItems.length > 0
+                        ? "No items match your filters."
+                        : sectionEmptyLabel(activeSection)
                       : "Select an organization in the sidebar to manage items."}
                   </td>
                 </tr>
@@ -241,10 +417,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                     />
                   </td>
                   <td className="px-3 py-3 align-middle">
-                    <span
-                      className="block truncate font-medium text-text-primary"
-                      title={item.name}
-                    >
+                    <span className="block wrap-break-word font-medium text-text-primary">
                       {item.name}
                     </span>
                   </td>
@@ -276,22 +449,14 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                   <td className="px-3 py-3 align-middle">
                     <span
                       className="block truncate text-sm font-medium text-text-primary"
-                      title={item.category}
+                      title={
+                        item.subcategory
+                          ? `${item.category} / ${item.subcategory}`
+                          : item.category
+                      }
                     >
-                      {item.category}
+                      {item.subcategory || item.category}
                     </span>
-                  </td>
-                  <td className="px-3 py-3 align-middle">
-                    {item.glCode ? (
-                      <span
-                        className="block truncate font-mono text-xs text-text-secondary"
-                        title={item.glCode}
-                      >
-                        {item.glCode}
-                      </span>
-                    ) : (
-                      <span className="text-text-muted">—</span>
-                    )}
                   </td>
                   <td className="px-3 py-3 align-middle">
                     <span
@@ -306,6 +471,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
             </tbody>
           </table>
         </div>
+      </div>
       </div>
 
       <CreateItemModal

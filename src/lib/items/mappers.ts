@@ -2,6 +2,60 @@ import type { CreateItemFormValues, InventoryItem } from "@/types/item";
 import { formatReportingUnitDisplay } from "@/types/item";
 import type { Tables, TablesInsert } from "@/types/database";
 
+export type CatalogItemRow = {
+  id: number | string;
+  name: string;
+  subcategory: {
+    name: string;
+    category: {
+      name: string;
+      item_type: {
+        name: string;
+      } | null;
+    } | null;
+  } | null;
+  item_packages:
+    | {
+        sku: string | null;
+        purchase_price: number | string | null;
+        units_per_package: number | null;
+        unit_size: number | string | null;
+        vendor: { name: string } | null;
+        unit: { name: string; symbol: string } | null;
+      }[]
+    | null;
+};
+
+function formatNumericDisplay(value: number): string {
+  if (Number.isInteger(value)) return String(value);
+  return String(parseFloat(value.toFixed(4)));
+}
+
+function formatPackageReportingUnit(
+  unitSize: number | string | null | undefined,
+  unitSymbol: string | null | undefined,
+  unitsPerPackage: number | null | undefined,
+): string {
+  const size = unitSize == null || unitSize === "" ? null : Number(unitSize);
+  const symbol = unitSymbol?.trim() ?? "";
+  const sizeLabel =
+    size != null && Number.isFinite(size)
+      ? `${formatNumericDisplay(size)}${symbol ? ` ${symbol}` : ""}`
+      : symbol;
+
+  if (!sizeLabel) return "";
+  if (unitsPerPackage != null && unitsPerPackage > 1) {
+    return `${unitsPerPackage} × ${sizeLabel}`;
+  }
+  return sizeLabel;
+}
+
+function toCost(value: number | string | null | undefined): number {
+  if (value == null || value === "") return 0;
+  const parsed = typeof value === "number" ? value : parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 export function mapFormToItemInsert(
   values: CreateItemFormValues,
   organizationId: string,
@@ -42,7 +96,29 @@ export function mapItemRowToInventoryItem(row: Tables<"items">): InventoryItem {
     cost: row.cost ?? 0,
     sku: row.sku ?? "",
     category: row.category,
-    glCode: row.gl_code,
+    subcategory: "",
     vendor: row.vendor ?? "",
+  };
+}
+
+export function mapCatalogItemRow(row: CatalogItemRow): InventoryItem {
+  const pkg = row.item_packages?.[0];
+  const itemType = row.subcategory?.category?.item_type?.name?.trim() ?? "";
+  const categoryName = row.subcategory?.category?.name?.trim() ?? "";
+  const subcategoryName = row.subcategory?.name?.trim() ?? "";
+
+  return {
+    id: String(row.id),
+    name: row.name,
+    reportingUnit: formatPackageReportingUnit(
+      pkg?.unit_size,
+      pkg?.unit?.symbol ?? pkg?.unit?.name,
+      pkg?.units_per_package,
+    ),
+    cost: toCost(pkg?.purchase_price),
+    sku: pkg?.sku ?? "",
+    category: itemType || categoryName,
+    subcategory: subcategoryName,
+    vendor: pkg?.vendor?.name ?? "",
   };
 }

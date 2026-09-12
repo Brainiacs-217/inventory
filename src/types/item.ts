@@ -5,7 +5,7 @@ export type InventoryItem = {
   cost: number;
   sku: string;
   category: string;
-  glCode: string | null;
+  subcategory: string;
   vendor: string;
 };
 

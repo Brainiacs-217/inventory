@@ -14,6 +14,15 @@
 
 }
 
+@utility scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .recharts-wrapper:focus,
 .recharts-wrapper:focus-visible,
 .recharts-wrapper:focus-within,

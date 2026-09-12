@@ -1,7 +1,33 @@
-import { mapItemRowToInventoryItem } from "@/lib/items/mappers";
+import { mapCatalogItemRow, type CatalogItemRow } from "@/lib/items/mappers";
 import { createClient } from "@/lib/supabase/server";
 import type { InventoryItem } from "@/types/item";
-import type { Tables } from "@/types/database";
+
+const ITEM_CATALOG_SELECT = `
+  id,
+  name,
+  subcategory:subcategories (
+    name,
+    category:categories (
+      name,
+      item_type:item_types (
+        name
+      )
+    )
+  ),
+  item_packages (
+    sku,
+    purchase_price,
+    units_per_package,
+    unit_size,
+    vendor:vendors (
+      name
+    ),
+    unit:units (
+      name,
+      symbol
+    )
+  )
+`;
 
 export async function getOrganizationItems(
   organizationId: string,
@@ -15,12 +41,14 @@ export async function getOrganizationItems(
 
   const { data, error } = await supabase
     .from("items")
-    .select("*")
+    .select(ITEM_CATALOG_SELECT)
     .eq("organization_id", organizationId)
-    .eq("is_active", true)
     .order("name");
 
-  if (error) return [];
+  if (error) {
+    console.error("Failed to load organization items:", error.message);
+    return [];
+  }
 
-  return (data ?? []).map((row) => mapItemRowToInventoryItem(row as Tables<"items">));
+  return ((data ?? []) as unknown as CatalogItemRow[]).map(mapCatalogItemRow);
 }
