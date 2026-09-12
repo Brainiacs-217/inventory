@@ -78,7 +78,7 @@ function FilterSelect({
   children: ReactNode;
 }) {
   return (
-    <div className="relative min-w-34 max-w-48">
+    <div className="relative min-w-0 flex-1 md:max-w-48 md:flex-none md:min-w-34">
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -252,14 +252,14 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
   return (
     <>
       <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        <div className="mb-4 flex shrink-0 flex-wrap items-center gap-3">
-          <div className="inline-flex w-fit rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
+        <div className="mb-3 flex shrink-0 items-center gap-2 md:mb-4 md:gap-3">
+          <div className="flex min-w-0 flex-1 rounded-lg border border-border/80 bg-surface p-1 shadow-sm md:inline-flex md:w-fit md:flex-none">
             {ITEM_CATEGORIES.map((section) => (
               <button
                 key={section}
                 type="button"
                 onClick={() => handleSectionChange(section)}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`min-w-0 flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors md:flex-none md:px-4 md:text-sm ${
                   activeSection === section
                     ? "bg-sidebar-active text-text-primary shadow-sm"
                     : "text-text-muted hover:text-text-primary"
@@ -269,7 +269,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
               </button>
             ))}
           </div>
-          <p className="text-sm text-text-muted">
+          <p className="shrink-0 text-xs text-text-muted md:text-sm">
             {formatItemCount(
               visibleItems.length,
               sectionItems.length,
@@ -279,9 +279,9 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
         </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl rounded-b-none border border-b-0 border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
-        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border/80 bg-surface px-5 py-3.5">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div className="relative min-w-48 max-w-sm flex-1">
+        <div className="flex shrink-0 flex-col gap-2 border-b border-border/80 bg-surface px-3 py-3 md:flex-row md:flex-wrap md:items-center md:px-5 md:py-3.5">
+          <div className="flex min-w-0 w-full flex-col gap-2 md:flex-1 md:flex-row md:flex-wrap md:items-center">
+            <div className="relative w-full min-w-0 md:max-w-sm md:min-w-48 md:flex-1">
               <Search
                 aria-hidden
                 className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-text-muted"
@@ -296,49 +296,51 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                 className={SEARCH_INPUT_CLASS}
               />
             </div>
-            <FilterSelect
-              value={categoryFilter}
-              onChange={setCategoryFilter}
-              label="Filter by category"
-              disabled={!organizationId}
-            >
-              <option value="">All categories</option>
-              {categoryOptions.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </FilterSelect>
-            <FilterSelect
-              value={vendorFilter}
-              onChange={setVendorFilter}
-              label="Filter by vendor"
-              disabled={!organizationId}
-            >
-              <option value="">All vendors</option>
-              {vendorOptions.map((vendor) => (
-                <option key={vendor} value={vendor}>
-                  {vendor === NO_VENDOR ? "No vendor" : vendor}
-                </option>
-              ))}
-            </FilterSelect>
-            {isFiltering ? (
-              <button
-                type="button"
-                onClick={handleClearFilters}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text-primary"
+            <div className="flex min-w-0 w-full items-center gap-2 md:w-auto md:flex-1">
+              <FilterSelect
+                value={categoryFilter}
+                onChange={setCategoryFilter}
+                label="Filter by category"
+                disabled={!organizationId}
               >
-                <X className="size-3.5" strokeWidth={2} />
-                Clear
-              </button>
-            ) : null}
+                <option value="">All categories</option>
+                {categoryOptions.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </FilterSelect>
+              <FilterSelect
+                value={vendorFilter}
+                onChange={setVendorFilter}
+                label="Filter by vendor"
+                disabled={!organizationId}
+              >
+                <option value="">All vendors</option>
+                {vendorOptions.map((vendor) => (
+                  <option key={vendor} value={vendor}>
+                    {vendor === NO_VENDOR ? "No vendor" : vendor}
+                  </option>
+                ))}
+              </FilterSelect>
+              {isFiltering ? (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text-primary"
+                >
+                  <X className="size-3.5" strokeWidth={2} />
+                  <span className="hidden sm:inline">Clear</span>
+                </button>
+              ) : null}
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:shrink-0">
             <button
               type="button"
               onClick={handleDeleteClick}
               disabled={!someSelected || !organizationId}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-surface px-4 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border/80 disabled:hover:bg-surface disabled:hover:text-text-secondary"
+              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border/80 bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border/80 disabled:hover:bg-surface disabled:hover:text-text-secondary md:px-4"
             >
               <Trash2 className="size-4" strokeWidth={2} />
               Delete
@@ -347,7 +349,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
               type="button"
               onClick={() => setCreateOpen(true)}
               disabled={!organizationId}
-              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50 md:px-4"
             >
               <Plus className="size-4" strokeWidth={2} />
               Add item
@@ -358,13 +360,13 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
         <div className="scrollbar-hidden min-h-0 flex-1 overflow-auto overscroll-none">
           <table className="w-full table-fixed border-collapse text-sm">
             <colgroup>
-              <col className="w-11" />
-              <col className="w-[32%]" />
-              <col className="w-[16%]" />
-              <col className="w-[10%]" />
-              <col className="w-[12%]" />
-              <col className="w-[14%]" />
-              <col className="w-[16%]" />
+              <col className="w-10 md:w-11" />
+              <col />
+              <col className="hidden md:table-column md:w-[16%]" />
+              <col className="w-[22%] md:w-[10%]" />
+              <col className="hidden md:table-column md:w-[12%]" />
+              <col className="w-[26%] md:w-[14%]" />
+              <col className="hidden w-[28%] md:table-column md:w-[16%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border/80 bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">
@@ -382,12 +384,12 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                     className="size-4 rounded border-border/80 accent-accent"
                   />
                 </th>
-                <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3">Reporting Unit</th>
-                <th className="px-3 py-3">Cost</th>
-                <th className="px-3 py-3">SKU</th>
-                <th className="px-3 py-3">Category</th>
-                <th className="px-3 py-3">Vendor</th>
+                <th className="px-2 py-2.5 md:px-3 md:py-3">Name</th>
+                <th className="hidden px-3 py-3 md:table-cell">Reporting Unit</th>
+                <th className="px-2 py-2.5 md:px-3 md:py-3">Cost</th>
+                <th className="hidden px-3 py-3 md:table-cell">SKU</th>
+                <th className="px-2 py-2.5 md:px-3 md:py-3">Category</th>
+                <th className="hidden px-2 py-2.5 md:table-cell md:px-3 md:py-3">Vendor</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
@@ -416,12 +418,15 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                       className="size-4 rounded border-border/80 accent-accent transition-shadow group-hover:shadow-sm"
                     />
                   </td>
-                  <td className="px-3 py-3 align-middle">
-                    <span className="block wrap-break-word font-medium text-text-primary">
+                  <td className="px-2 py-2.5 align-middle md:px-3 md:py-3">
+                    <span
+                      className="block truncate font-medium text-text-primary"
+                      title={item.name}
+                    >
                       {item.name}
                     </span>
                   </td>
-                  <td className="px-3 py-3 align-middle">
+                  <td className="hidden px-3 py-3 align-middle md:table-cell">
                     <span
                       className="block truncate text-text-secondary"
                       title={item.reportingUnit}
@@ -429,12 +434,12 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                       {item.reportingUnit}
                     </span>
                   </td>
-                  <td className="px-3 py-3 align-middle">
+                  <td className="px-2 py-2.5 align-middle md:px-3 md:py-3">
                     <span className="tabular-nums font-medium text-text-primary">
                       ${item.cost.toFixed(2)}
                     </span>
                   </td>
-                  <td className="px-3 py-3 align-middle">
+                  <td className="hidden px-3 py-3 align-middle md:table-cell">
                     {item.sku ? (
                       <span
                         className="block truncate rounded-md border border-border/60 bg-surface-muted/60 px-2 py-0.5 font-mono text-xs text-text-secondary"
@@ -446,7 +451,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                       <span className="text-text-muted">—</span>
                     )}
                   </td>
-                  <td className="px-3 py-3 align-middle">
+                  <td className="px-2 py-2.5 align-middle md:px-3 md:py-3">
                     <span
                       className="block truncate text-sm font-medium text-text-primary"
                       title={
@@ -458,7 +463,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                       {item.subcategory || item.category}
                     </span>
                   </td>
-                  <td className="px-3 py-3 align-middle">
+                  <td className="hidden px-2 py-2.5 align-middle md:table-cell md:px-3 md:py-3">
                     <span
                       className="block truncate text-text-secondary"
                       title={item.vendor}

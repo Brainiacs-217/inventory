@@ -30,10 +30,15 @@ const linkClass = (active: boolean, collapsed: boolean) =>
       : "text-sidebar-muted hover:bg-sidebar-active/50 hover:text-sidebar-foreground"
   }`;
 
-export function AppSidebar() {
+type AppSidebarProps = {
+  mobileOpen?: boolean;
+};
+
+export function AppSidebar({ mobileOpen = false }: AppSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const iconOnly = collapsed && !mobileOpen;
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
@@ -68,20 +73,25 @@ export function AppSidebar() {
 
   return (
     <aside
-      className={`flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-[width] duration-200 ${
-        collapsed ? "w-16" : "w-60"
+      className={`flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-60 ${
+        mobileOpen ? "max-md:flex" : "max-md:hidden"
+      } md:flex md:shrink-0 md:transition-[width] ${
+        iconOnly ? "md:w-16" : "md:w-60"
       }`}
+      role={mobileOpen ? "dialog" : undefined}
+      aria-modal={mobileOpen ? true : undefined}
+      aria-label={mobileOpen ? "Navigation" : undefined}
     >
-      <OrgSwitcher collapsed={collapsed} />
+      <OrgSwitcher collapsed={iconOnly} />
 
       <nav
-        className={`flex flex-1 flex-col gap-1 py-4 ${collapsed ? "px-2" : "px-3"}`}
+        className={`flex flex-1 flex-col gap-1 py-4 ${iconOnly ? "px-2" : "px-3"}`}
       >
         {navItems.map((item) => {
           if (item.children) {
             const isExpanded = expanded[item.label] ?? false;
 
-            if (collapsed) {
+            if (iconOnly) {
               const groupActive = groupIsActive(item, pathname);
               const activeChild = item.children.find((child) =>
                 isActive(pathname, child.href),
@@ -92,7 +102,7 @@ export function AppSidebar() {
                   key={item.label}
                   href={activeChild?.href ?? item.children[0].href}
                   title={item.label}
-                  className={linkClass(groupActive, collapsed)}
+                  className={linkClass(groupActive, iconOnly)}
                 >
                   <NavIcon icon={item.icon} />
                 </Link>
@@ -126,7 +136,7 @@ export function AppSidebar() {
                         <Link
                           key={child.href}
                           href={child.href}
-                          className={linkClass(childActive, collapsed)}
+                          className={linkClass(childActive, iconOnly)}
                         >
                           <NavIcon icon={child.icon} />
                           <span className="truncate">{child.label}</span>
@@ -145,28 +155,30 @@ export function AppSidebar() {
             <Link
               key={item.href}
               href={item.href!}
-              title={collapsed ? item.label : undefined}
-              className={linkClass(active, collapsed)}
+              title={iconOnly ? item.label : undefined}
+              className={linkClass(active, iconOnly)}
             >
               <NavIcon icon={item.icon} />
-              {!collapsed && <span className="truncate">{item.label}</span>}
+              {!iconOnly && <span className="truncate">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
       <div
-        className={`mt-auto border-t border-sidebar-border py-4 ${collapsed ? "px-2" : "px-3"}`}
+        className={`mt-auto hidden border-t border-sidebar-border py-4 md:block ${
+          iconOnly ? "px-2" : "px-3"
+        }`}
       >
         <button
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           className={`flex w-full items-center rounded-md py-2 text-sidebar-muted transition-colors hover:bg-sidebar-active/50 hover:text-sidebar-foreground ${
-            collapsed ? "justify-center px-2" : "justify-end px-3"
+            iconOnly ? "justify-center px-2" : "justify-end px-3"
           }`}
         >
-          {collapsed ? (
+          {iconOnly ? (
             <ChevronRight aria-hidden className="h-4 w-4 shrink-0" />
           ) : (
             <ChevronLeft aria-hidden className="h-4 w-4 shrink-0" />
