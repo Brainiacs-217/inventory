@@ -14,6 +14,21 @@ import type { CreateItemFormValues, InventoryItem } from "@/types/item";
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
 const NO_VENDOR = "__none__";
+const TABLE_CLASS = "w-full table-fixed border-collapse text-sm";
+
+function TableColgroup() {
+  return (
+    <colgroup>
+      <col className="w-10 md:w-11" />
+      <col />
+      <col className="hidden md:table-column md:w-[16%]" />
+      <col className="w-[22%] md:w-[10%]" />
+      <col className="hidden md:table-column md:w-[12%]" />
+      <col className="w-[26%] md:w-[14%]" />
+      <col className="hidden w-[28%] md:table-column md:w-[16%]" />
+    </colgroup>
+  );
+}
 
 const SEARCH_INPUT_CLASS =
   "w-full rounded-md border border-border/80 bg-surface py-2 pl-9 pr-3 text-sm text-text-primary shadow-sm outline-none placeholder:text-text-muted/60 transition-[border-color,box-shadow] hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50";
@@ -278,7 +293,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
           </p>
         </div>
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl rounded-b-none border border-b-0 border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
         <div className="flex shrink-0 flex-col gap-2 border-b border-border/80 bg-surface px-3 py-3 md:flex-row md:flex-wrap md:items-center md:px-5 md:py-3.5">
           <div className="flex min-w-0 w-full flex-col gap-2 md:flex-1 md:flex-row md:flex-wrap md:items-center">
             <div className="relative w-full min-w-0 md:max-w-sm md:min-w-48 md:flex-1">
@@ -357,18 +372,10 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
           </div>
         </div>
 
-        <div className="scrollbar-hidden min-h-0 flex-1 overflow-auto overscroll-none">
-          <table className="w-full table-fixed border-collapse text-sm">
-            <colgroup>
-              <col className="w-10 md:w-11" />
-              <col />
-              <col className="hidden md:table-column md:w-[16%]" />
-              <col className="w-[22%] md:w-[10%]" />
-              <col className="hidden md:table-column md:w-[12%]" />
-              <col className="w-[26%] md:w-[14%]" />
-              <col className="hidden w-[28%] md:table-column md:w-[16%]" />
-            </colgroup>
-            <thead className="sticky top-0 z-10">
+        <div className="shrink-0 scrollbar-gutter-stable">
+          <table className={TABLE_CLASS}>
+            <TableColgroup />
+            <thead>
               <tr className="border-b border-border/80 bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">
                 <th className={SELECT_CELL_CLASS}>
                   <input
@@ -392,6 +399,12 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                 <th className="hidden px-2 py-2.5 md:table-cell md:px-3 md:py-3">Vendor</th>
               </tr>
             </thead>
+          </table>
+        </div>
+
+        <div className="scrollbar-gutter-stable min-h-0 flex-1 overflow-y-auto overscroll-none">
+          <table className={TABLE_CLASS}>
+            <TableColgroup />
             <tbody className="divide-y divide-border/60">
               {visibleItems.length === 0 ? (
                 <tr>

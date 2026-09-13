@@ -101,7 +101,7 @@ export function RecipeFormSection({
           </div>
         </div>
       </header>
-      <div className="flex flex-1 flex-col p-3">{children}</div>
+      <div className="flex min-h-0 flex-1 flex-col p-3">{children}</div>
     </section>
   );
 }

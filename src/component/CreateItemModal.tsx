@@ -4,6 +4,10 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
+import {
+  RecipeFormSection,
+  recipeFieldGridClassName,
+} from "@/component/recipe/formShared";
 import { calculateItemCost, formatCostValue } from "@/lib/items/cost";
 import {
   BASE_UNITS,
@@ -107,15 +111,17 @@ function Field({
   error,
   hint,
   children,
+  className,
 }: {
   label: string;
   required?: boolean;
   error?: string;
   hint?: string;
   children: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className={`flex min-w-0 flex-col gap-1 ${className ?? ""}`}>
       <label className={labelClassName}>
         {label}
         {required ? <span className="text-error"> *</span> : null}
@@ -223,7 +229,8 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
       open={open}
       onClose={onClose}
       title="Create beverage"
-      size="md"
+      size="xl"
+      bodyClassName="overflow-hidden py-3"
       footer={
         <div className="flex flex-col gap-2">
           {submitError ? <p className="text-xs text-error">{submitError}</p> : null}
@@ -251,139 +258,166 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
       <form
         id="create-beverage-form"
         onSubmit={handleSubmit}
-        className="grid grid-cols-2 gap-x-3 gap-y-3"
+        className="grid grid-cols-2 gap-3"
       >
-        <Field label="Name" required error={errors.name}>
-          <input
-            type="text"
-            placeholder="e.g. Bud Light 12oz"
-            value={values.name}
-            onChange={(event) => updateField("name", event.target.value)}
-            className={inputClassName}
-            autoFocus
-          />
-        </Field>
-
-        <Field label="Sub category" required error={errors.subCategory}>
-          <SelectInput>
-            <select
-              value={values.subCategory}
-              onChange={(event) => updateField("subCategory", event.target.value)}
-              className={selectClassName}
-            >
-              <option value="">Select sub category</option>
-              {BEVERAGE_SUB_CATEGORIES.map((subCategory) => (
-                <option key={subCategory} value={subCategory}>
-                  {subCategory}
-                </option>
-              ))}
-            </select>
-          </SelectInput>
-        </Field>
-
-        <Field
-          label="Case size"
-          required
-          error={errors.caseSize}
-          hint="How many units are inside one case (e.g. 24 cans)."
+        <RecipeFormSection
+          step="01"
+          title="Identity"
+          description="What is this beverage called?"
         >
-          <input
-            type="number"
-            min="0"
-            step="any"
-            placeholder="e.g. 24"
-            value={values.caseSize}
-            onChange={(event) => updateField("caseSize", event.target.value)}
-            className={inputClassName}
-          />
-        </Field>
+          <div className={recipeFieldGridClassName}>
+            <Field label="Name" required error={errors.name}>
+              <input
+                type="text"
+                placeholder="e.g. Bud Light 12oz"
+                value={values.name}
+                onChange={(event) => updateField("name", event.target.value)}
+                className={inputClassName}
+                autoFocus
+              />
+            </Field>
 
-        <Field
-          label="Unit size"
-          required
-          error={errors.unitSize ?? errors.baseUnit}
-          hint="How each unit is measured (e.g. 12 oz per can)."
+            <Field label="Sub category" required error={errors.subCategory}>
+              <SelectInput>
+                <select
+                  value={values.subCategory}
+                  onChange={(event) =>
+                    updateField("subCategory", event.target.value)
+                  }
+                  className={selectClassName}
+                >
+                  <option value="">Select sub category</option>
+                  {BEVERAGE_SUB_CATEGORIES.map((subCategory) => (
+                    <option key={subCategory} value={subCategory}>
+                      {subCategory}
+                    </option>
+                  ))}
+                </select>
+              </SelectInput>
+            </Field>
+          </div>
+        </RecipeFormSection>
+
+        <RecipeFormSection
+          step="02"
+          title="Packaging"
+          description="How each case and unit is measured."
         >
-          <div className="flex gap-2">
-            <input
-              type="number"
-              min="0"
-              step="any"
-              placeholder="e.g. 12"
-              value={values.unitSize}
-              onChange={(event) => updateField("unitSize", event.target.value)}
-              className={`${inputClassName} min-w-0 flex-1`}
-            />
-            <SelectInput>
-              <select
-                value={values.baseUnit}
-                onChange={(event) => updateField("baseUnit", event.target.value)}
-                aria-label="Base unit"
-                className={`${selectClassName} w-[7.5rem] shrink-0`}
-              >
-                <option value="">Unit</option>
-                {BASE_UNITS.map((unit) => (
-                  <option key={unit} value={unit}>
-                    {unit}
-                  </option>
-                ))}
-              </select>
-            </SelectInput>
-          </div>
-        </Field>
+          <div className={recipeFieldGridClassName}>
+            <Field label="Case size" required error={errors.caseSize}>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="e.g. 24"
+                value={values.caseSize}
+                onChange={(event) => updateField("caseSize", event.target.value)}
+                className={inputClassName}
+              />
+            </Field>
 
-        <Field label="Vendor" required error={errors.vendor}>
-          <SelectInput>
-            <select
-              value={values.vendor}
-              onChange={(event) => updateField("vendor", event.target.value)}
-              className={selectClassName}
+            <Field
+              label="Unit size"
+              required
+              error={errors.unitSize ?? errors.baseUnit}
             >
-              <option value="">Select vendor</option>
-              {VENDORS.map((vendor) => (
-                <option key={vendor} value={vendor}>
-                  {vendor}
-                </option>
-              ))}
-            </select>
-          </SelectInput>
-        </Field>
-
-        <Field label="Price" required error={errors.price}>
-          <div className="relative">
-            <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-text-muted">
-              $
-            </span>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={values.price}
-              onChange={(event) => updateField("price", event.target.value)}
-              className={`${inputClassName} pl-6`}
-            />
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  placeholder="e.g. 12"
+                  value={values.unitSize}
+                  onChange={(event) => updateField("unitSize", event.target.value)}
+                  className={`${inputClassName} min-w-0 flex-1`}
+                />
+                <SelectInput>
+                  <select
+                    value={values.baseUnit}
+                    onChange={(event) =>
+                      updateField("baseUnit", event.target.value)
+                    }
+                    aria-label="Base unit"
+                    className={`${selectClassName} w-24 shrink-0`}
+                  >
+                    <option value="">Unit</option>
+                    {BASE_UNITS.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                </SelectInput>
+              </div>
+            </Field>
           </div>
-        </Field>
+        </RecipeFormSection>
 
-        <Field label="SKU" error={errors.sku}>
-          <input
-            type="text"
-            placeholder="Optional"
-            value={values.sku}
-            onChange={(event) => updateField("sku", event.target.value)}
-            className={inputClassName}
-          />
-        </Field>
+        <RecipeFormSection
+          step="03"
+          title="Purchasing"
+          description="Vendor, price, and optional SKU."
+        >
+          <div className={recipeFieldGridClassName}>
+            <Field label="Vendor" required error={errors.vendor}>
+              <SelectInput>
+                <select
+                  value={values.vendor}
+                  onChange={(event) => updateField("vendor", event.target.value)}
+                  className={selectClassName}
+                >
+                  <option value="">Select vendor</option>
+                  {VENDORS.map((vendor) => (
+                    <option key={vendor} value={vendor}>
+                      {vendor}
+                    </option>
+                  ))}
+                </select>
+              </SelectInput>
+            </Field>
 
-        <Field label="Comments" hint="Optional notes about this beverage.">
-          <textarea
-            rows={1}
-            placeholder="Optional"
-            value={values.comments}
-            onChange={(event) => updateField("comments", event.target.value)}
-            className={`${inputClassName} min-h-[2.125rem] resize-none`}
-          />
-        </Field>
+            <Field label="Price" required error={errors.price}>
+              <div className="relative">
+                <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-text-muted">
+                  $
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={values.price}
+                  onChange={(event) => updateField("price", event.target.value)}
+                  className={`${inputClassName} pl-6`}
+                />
+              </div>
+            </Field>
+
+            <Field label="SKU" error={errors.sku} className="col-span-2">
+              <input
+                type="text"
+                placeholder="Optional"
+                value={values.sku}
+                onChange={(event) => updateField("sku", event.target.value)}
+                className={inputClassName}
+              />
+            </Field>
+          </div>
+        </RecipeFormSection>
+
+        <RecipeFormSection
+          step="04"
+          title="Notes"
+          description="Optional notes about this beverage."
+        >
+          <Field label="Comments" className="h-full min-h-0">
+            <textarea
+              placeholder="Optional"
+              value={values.comments}
+              onChange={(event) => updateField("comments", event.target.value)}
+              className={`${inputClassName} min-h-0 flex-1 resize-none`}
+            />
+          </Field>
+        </RecipeFormSection>
       </form>
     </Modal>
   );
