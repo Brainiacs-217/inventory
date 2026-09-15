@@ -28,12 +28,14 @@ export async function signUpWithEmail(
     return { error: signUpError.message };
   }
 
+  // Empty identities means this email is already registered.
   if (data.user?.identities?.length === 0) {
     return {
       error: "An account with this email already exists. Try signing in.",
     };
   }
 
+  // Sign in if signup did not return a session (email confirmation may be off).
   if (!data.session) {
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
