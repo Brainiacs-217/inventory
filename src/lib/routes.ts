@@ -3,8 +3,10 @@ export const publicPaths = ["/login"] as const;
 export type NavIcon =
   | "dashboard"
   | "package"
+  | "boxes"
   | "book-open"
-  | "warehouse";
+  | "warehouse"
+  | "calculator";
 
 export type NavItem = {
   label: string;
@@ -15,7 +17,9 @@ export type NavItem = {
 export const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/items", label: "Items", icon: "package" },
+  { href: "/batches", label: "Batches", icon: "boxes" },
   { href: "/recipes", label: "Recipes", icon: "book-open" },
+  { href: "/inventory/cogs-test", label: "COGS Test", icon: "calculator" },
   { href: "/inventory", label: "Inventory", icon: "warehouse" },
 ];
 
@@ -35,7 +39,20 @@ export function isAppPath(pathname: string): boolean {
   return navItems.some((item) => matchesPath(pathname, item.href));
 }
 
+export function isNavItemActive(pathname: string, href: string): boolean {
+  if (!matchesPath(pathname, href)) return false;
+
+  return !navItems.some(
+    (item) =>
+      item.href !== href &&
+      item.href.startsWith(`${href}/`) &&
+      matchesPath(pathname, item.href),
+  );
+}
+
 export function getPageTitle(pathname: string): string {
-  const match = navItems.find((item) => matchesPath(pathname, item.href));
+  const match = navItems
+    .filter((item) => matchesPath(pathname, item.href))
+    .sort((a, b) => b.href.length - a.href.length)[0];
   return match?.label ?? "Inventory";
 }

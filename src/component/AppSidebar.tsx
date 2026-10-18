@@ -7,13 +7,9 @@ import { useEffect, useState } from "react";
 
 import { NavIcon } from "@/component/NavIcon";
 import { OrgSwitcher } from "@/component/OrgSwitcher";
-import { navItems } from "@/lib/routes";
+import { isNavItemActive, navItems } from "@/lib/routes";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
-
-function isActive(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
 
 const linkClass = (active: boolean, collapsed: boolean) =>
   `flex items-center rounded-md py-2 text-sm transition-colors ${
@@ -65,7 +61,7 @@ export function AppSidebar({ mobileOpen = false }: AppSidebarProps) {
         className={`flex flex-1 flex-col gap-1 py-4 ${iconOnly ? "px-2" : "px-3"}`}
       >
         {navItems.map((item) => {
-          const active = isActive(pathname, item.href);
+          const active = isNavItemActive(pathname, item.href);
 
           return (
             <Link

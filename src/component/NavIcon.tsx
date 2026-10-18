@@ -2,6 +2,8 @@
 
 import {
   BookOpen,
+  Boxes,
+  Calculator,
   LayoutDashboard,
   Package,
   Warehouse,
@@ -13,8 +15,10 @@ import type { NavIcon } from "@/lib/routes";
 const navIcons: Record<NavIcon, LucideIcon> = {
   dashboard: LayoutDashboard,
   package: Package,
+  boxes: Boxes,
   "book-open": BookOpen,
   warehouse: Warehouse,
+  calculator: Calculator,
 };
 
 export function NavIcon({ icon }: { icon: NavIcon }) {
