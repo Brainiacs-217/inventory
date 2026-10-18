@@ -1,27 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { IngredientSearch } from "@/component/recipe/IngredientSearch";
-import { RecipeCostSummary } from "@/component/recipe/RecipeCostSummary";
 import { RecipeIdentityForm } from "@/component/recipe/RecipeIdentityForm";
 import { RecipeIngredientList } from "@/component/recipe/RecipeIngredientList";
-import { YieldServingOptions } from "@/component/recipe/YieldServingOptions";
-import {
-  RecipeFormSection,
-  recipeSectionRowClassName,
-} from "@/component/recipe/formShared";
+import { RecipeFormSection } from "@/component/recipe/formShared";
 import { Modal } from "@/component/Modal";
-import {
-  computeTotalCost,
-  computeTotalIngredientCost,
-  parseOptionalNumber,
-} from "@/lib/recipes/cost";
 import type { InventoryItem } from "@/types/item";
 import {
   createEmptyRecipeFormValues,
+  type BatchOption,
   type CreateRecipeFormValues,
   type RecipeIngredientInput,
+  type UnitOption,
 } from "@/types/recipe";
 
 type CreateRecipeModalProps = {
@@ -29,19 +21,11 @@ type CreateRecipeModalProps = {
   onClose: () => void;
   onSave: (values: CreateRecipeFormValues) => Promise<void>;
   catalogItems: InventoryItem[];
+  batches: BatchOption[];
+  units: UnitOption[];
 };
 
-type FormErrors = Partial<
-  Record<
-    | keyof CreateRecipeFormValues
-    | "ingredients"
-    | "salesPrice"
-    | "miscCost"
-    | "yieldQuantity"
-    | "servingSizeQuantity",
-    string
-  >
->;
+type FormErrors = Partial<Record<"name" | "ingredients", string>>;
 
 function validateForm(values: CreateRecipeFormValues): FormErrors {
   const errors: FormErrors = {};
@@ -51,47 +35,26 @@ function validateForm(values: CreateRecipeFormValues): FormErrors {
   }
 
   if (values.ingredients.length === 0) {
-    errors.ingredients = "Add at least one ingredient.";
+    errors.ingredients = "Add at least one item or batch.";
   }
 
   for (const ingredient of values.ingredients) {
     const amount = parseFloat(ingredient.quantity);
+    const hasSource =
+      ingredient.source === "item"
+        ? Boolean(ingredient.itemId)
+        : Boolean(ingredient.batchId);
+
     if (
+      !hasSource ||
+      !ingredient.unitId ||
       !ingredient.quantity.trim() ||
       Number.isNaN(amount) ||
       amount <= 0
     ) {
-      errors.ingredients = "Each ingredient needs an amount.";
+      errors.ingredients = "Each line needs a source, quantity greater than 0, and unit.";
       break;
     }
-  }
-
-  if (values.salesPrice.trim()) {
-    const salesPrice = parseFloat(values.salesPrice);
-    if (Number.isNaN(salesPrice) || salesPrice < 0) {
-      errors.salesPrice = "Enter a valid price.";
-    }
-  }
-
-  if (values.miscCost.trim()) {
-    const miscCost = parseFloat(values.miscCost);
-    if (Number.isNaN(miscCost) || miscCost < 0) {
-      errors.miscCost = "Enter a valid amount.";
-    }
-  }
-
-  if (
-    values.yieldQuantity.trim() &&
-    parseOptionalNumber(values.yieldQuantity) === null
-  ) {
-    errors.yieldQuantity = "Enter a valid number.";
-  }
-
-  if (
-    values.servingSizeQuantity.trim() &&
-    parseOptionalNumber(values.servingSizeQuantity) === null
-  ) {
-    errors.servingSizeQuantity = "Enter a valid number.";
   }
 
   return errors;
@@ -102,6 +65,8 @@ export function CreateRecipeModal({
   onClose,
   onSave,
   catalogItems,
+  batches,
+  units,
 }: CreateRecipeModalProps) {
   const [values, setValues] = useState<CreateRecipeFormValues>(
     createEmptyRecipeFormValues(),
@@ -115,19 +80,6 @@ export function CreateRecipeModal({
     setErrors({});
   }, [open]);
 
-  const itemsById = useMemo(
-    () => new Map(catalogItems.map((item) => [item.id, item])),
-    [catalogItems],
-  );
-
-  const totalIngredientCost = useMemo(
-    () => computeTotalIngredientCost(values.ingredients, itemsById),
-    [values.ingredients, itemsById],
-  );
-
-  const miscCost = parseFloat(values.miscCost) || 0;
-  const totalCost = computeTotalCost(totalIngredientCost, miscCost);
-
   function updateField<K extends keyof CreateRecipeFormValues>(
     key: K,
     value: CreateRecipeFormValues[K],
@@ -136,7 +88,6 @@ export function CreateRecipeModal({
     setErrors((current) => {
       const next = { ...current };
       delete next[key];
-      if (key === "ingredients") delete next.ingredients;
       return next;
     });
   }
@@ -147,7 +98,7 @@ export function CreateRecipeModal({
 
   function handleUpdateIngredient(
     id: string,
-    patch: Partial<Pick<RecipeIngredientInput, "quantity" | "unit">>,
+    patch: Partial<Pick<RecipeIngredientInput, "quantity" | "unitId" | "role" | "note">>,
   ) {
     updateField(
       "ingredients",
@@ -219,85 +170,43 @@ export function CreateRecipeModal({
         onSubmit={handleSubmit}
         className="flex flex-col gap-3"
       >
-        <div className={recipeSectionRowClassName}>
-          <RecipeFormSection
-            step="01"
-            title="Identity"
-            description="What is this recipe called?"
-          >
-            <RecipeIdentityForm
-              name={values.name}
-              error={errors.name}
-              onChange={(name) => updateField("name", name)}
-            />
-          </RecipeFormSection>
+        <RecipeFormSection
+          step="01"
+          title="Recipe"
+          description="What is this recipe called?"
+        >
+          <RecipeIdentityForm
+            name={values.name}
+            error={errors.name}
+            onChange={(name) => updateField("name", name)}
+          />
+        </RecipeFormSection>
 
-          <RecipeFormSection
-            step="02"
-            title="Ingredients"
-            description="Pick items from your catalog and how much goes in."
-          >
-            <div className="flex h-full flex-col gap-2.5">
-              <IngredientSearch
-                catalogItems={catalogItems}
-                onAdd={handleAddIngredient}
-              />
-              <RecipeIngredientList
-                ingredients={values.ingredients}
-                catalogItems={catalogItems}
-                onUpdate={handleUpdateIngredient}
-                onRemove={handleRemoveIngredient}
-              />
-              {errors.ingredients ? (
-                <p className="text-xs text-error">{errors.ingredients}</p>
-              ) : null}
-            </div>
-          </RecipeFormSection>
-        </div>
-
-        <div className={recipeSectionRowClassName}>
-          <RecipeFormSection
-            step="03"
-            title="Pricing"
-            description="Menu price and other costs — totals compute automatically."
-          >
-            <RecipeCostSummary
-              values={{
-                salesPrice: values.salesPrice,
-                miscCost: values.miscCost,
-              }}
-              totalIngredientCost={totalIngredientCost}
-              errors={{
-                salesPrice: errors.salesPrice,
-                miscCost: errors.miscCost,
-              }}
-              onChange={(key, value) => updateField(key, value)}
+        <RecipeFormSection
+          step="02"
+          title="Ingredients"
+          description="Each line is an item or a batch, with quantity, unit, role, and an optional note."
+        >
+          <div className="flex h-full flex-col gap-2.5">
+            <IngredientSearch
+              catalogItems={catalogItems}
+              batches={batches}
+              units={units}
+              onAdd={handleAddIngredient}
             />
-          </RecipeFormSection>
-
-          <RecipeFormSection
-            step="04"
-            title="Yield"
-            description="Optional batch size and portion for per-serving cost."
-          >
-            <YieldServingOptions
-              values={{
-                yieldQuantity: values.yieldQuantity,
-                yieldUnit: values.yieldUnit,
-                servingSizeQuantity: values.servingSizeQuantity,
-                servingSizeUnit: values.servingSizeUnit,
-              }}
-              totalCost={totalCost}
-              errors={{
-                yieldQuantity: errors.yieldQuantity,
-                yieldUnit: errors.yieldUnit,
-                servingSizeQuantity: errors.servingSizeQuantity,
-                servingSizeUnit: errors.servingSizeUnit,
-              }}
-              onChange={(key, value) => updateField(key, value)}
+            <RecipeIngredientList
+              ingredients={values.ingredients}
+              catalogItems={catalogItems}
+              batches={batches}
+              units={units}
+              onUpdate={handleUpdateIngredient}
+              onRemove={handleRemoveIngredient}
             />
-          </RecipeFormSection>
-        </div>
+            {errors.ingredients ? (
+              <p className="text-xs text-error">{errors.ingredients}</p>
+            ) : null}
+          </div>
+        </RecipeFormSection>
       </form>
     </Modal>
   );

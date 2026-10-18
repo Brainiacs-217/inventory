@@ -16,7 +16,15 @@ export type {
   SquareOAuthScope,
   SquareOAuthTokenResponse,
 } from "./square";
-export type { CreateRecipeFormValues, Recipe, RecipeIngredientInput } from "./recipe";
+export type {
+  BatchOption,
+  CreateRecipeFormValues,
+  Recipe,
+  RecipeIngredientInput,
+  RecipeIngredientRole,
+  RecipeIngredientSource,
+  UnitOption,
+} from "./recipe";
 export {
   createEmptyItemFormValues,
   formatReportingUnitDisplay,

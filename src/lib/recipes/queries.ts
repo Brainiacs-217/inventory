@@ -15,13 +15,18 @@ export async function getOrganizationRecipes(
 
   const { data, error } = await supabase
     .from("recipes")
-    .select("*, recipe_ingredients(id)")
+    .select("id, name, created_at, recipe_ingredients(id)")
     .eq("organization_id", organizationId)
     .order("name");
 
-  if (error) return [];
+  if (error) {
+    console.error("Failed to load organization recipes:", error.message);
+    return [];
+  }
 
   return (data ?? []).map((row) =>
-    mapRecipeRowToRecipe(row as Tables<"recipes"> & { recipe_ingredients: { id: string }[] }),
+    mapRecipeRowToRecipe(
+      row as Tables<"recipes"> & { recipe_ingredients: { id: number }[] },
+    ),
   );
 }

@@ -2,19 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 
-import { getOrganizationItems } from "@/lib/items/queries";
 import {
-  computeTotalCost,
-  computeTotalIngredientCost,
-} from "@/lib/recipes/cost";
-import {
+  mapFormToRecipeIngredientInserts,
   mapFormToRecipeInsert,
-  mapRecipeRowToRecipe,
 } from "@/lib/recipes/mappers";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { CreateRecipeFormValues } from "@/types/recipe";
-import type { Tables } from "@/types/database";
 
 type ActionError = { error: string };
 type ActionSuccess<T> = { data: T };
@@ -60,29 +54,20 @@ export async function createRecipe(
     return { error: "You do not have access to this organization." };
   }
 
-  const catalogItems = await getOrganizationItems(organizationId);
-  const itemsById = new Map(catalogItems.map((item) => [item.id, item]));
-  const totalIngredientCost = computeTotalIngredientCost(values.ingredients, itemsById);
-  const foodCost = computeTotalCost(totalIngredientCost, parseFloat(values.miscCost) || 0);
-
   const { data: recipe, error: recipeError } = await supabase
     .from("recipes")
-    .insert(mapFormToRecipeInsert(values, organizationId, foodCost))
-    .select()
+    .insert(mapFormToRecipeInsert(values, organizationId))
+    .select("id")
     .single();
 
   if (recipeError) {
     return { error: recipeError.message };
   }
 
-  const ingredientRows = values.ingredients.map((ingredient, index) => ({
-    recipe_id: recipe.id,
-    item_id: ingredient.itemId,
-    quantity: parseFloat(ingredient.quantity),
-    unit: ingredient.unit,
-    sort_order: index,
-  }));
-
+  const ingredientRows = mapFormToRecipeIngredientInserts(
+    Number(recipe.id),
+    values.ingredients,
+  );
   const { error: ingredientsError } = await supabase
     .from("recipe_ingredients")
     .insert(ingredientRows);
@@ -93,7 +78,7 @@ export async function createRecipe(
   }
 
   revalidatePath("/recipes");
-  return { data: { recipeId: recipe.id } };
+  return { data: { recipeId: String(recipe.id) } };
 }
 
 export async function deleteRecipes(
@@ -117,18 +102,20 @@ export async function deleteRecipes(
     return { error: "You must be signed in to delete recipes." };
   }
 
+  const numericIds = recipeIds.map((id) => Number(id)).filter((id) => Number.isFinite(id));
+
   const { data, error } = await supabase
     .from("recipes")
     .delete()
     .eq("organization_id", organizationId)
-    .in("id", recipeIds)
+    .in("id", numericIds)
     .select("id");
 
   if (error) {
     return { error: error.message };
   }
 
-  const deletedIds = (data ?? []).map((row) => row.id);
+  const deletedIds = (data ?? []).map((row) => String(row.id));
   if (deletedIds.length === 0) {
     return { error: "No recipes were deleted." };
   }

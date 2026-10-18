@@ -9,7 +9,12 @@ import { Modal } from "@/component/Modal";
 import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
 import { createRecipe, deleteRecipes } from "@/lib/recipes/actions";
 import type { InventoryItem } from "@/types/item";
-import type { CreateRecipeFormValues, Recipe } from "@/types/recipe";
+import type {
+  BatchOption,
+  CreateRecipeFormValues,
+  Recipe,
+  UnitOption,
+} from "@/types/recipe";
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
 
@@ -17,24 +22,25 @@ function formatRecipeCount(count: number): string {
   return count === 1 ? "1 recipe" : `${count} recipes`;
 }
 
-function formatYield(
-  yieldQuantity: number | null,
-  yieldUnit: string | null,
-): string {
-  if (yieldQuantity === null) return "—";
-  const unit = yieldUnit?.trim();
-  return unit ? `${yieldQuantity} ${unit}` : `${yieldQuantity}`;
+function formatCreatedAt(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString();
 }
 
 type RecipesTableProps = {
   recipes: Recipe[];
   catalogItems: InventoryItem[];
+  batches: BatchOption[];
+  units: UnitOption[];
   organizationId: string | null;
 };
 
 export function RecipesTable({
   recipes,
   catalogItems,
+  batches,
+  units,
   organizationId,
 }: RecipesTableProps) {
   const router = useRouter();
@@ -155,12 +161,9 @@ export function RecipesTable({
           <table className="w-full table-fixed border-collapse text-sm">
             <colgroup>
               <col className="w-11" />
-              <col className="w-[24%]" />
-              <col className="w-[14%]" />
-              <col className="w-[14%]" />
-              <col className="w-[14%]" />
-              <col className="w-[12%]" />
-              <col className="w-[14%]" />
+              <col className="w-[46%]" />
+              <col className="w-[22%]" />
+              <col className="w-[22%]" />
             </colgroup>
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-border/80 bg-surface-muted/80 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted backdrop-blur-sm">
@@ -179,30 +182,21 @@ export function RecipesTable({
                   />
                 </th>
                 <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3">Yield</th>
-                <th className="px-3 py-3">Food Cost</th>
-                <th className="px-3 py-3">Menu Price</th>
-                <th className="px-3 py-3">Ingredients</th>
-                <th className="px-3 py-3">Cost %</th>
+                <th className="px-3 py-3">Lines</th>
+                <th className="px-3 py-3">Created</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/60">
               {recipes.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-sm text-text-muted">
+                  <td colSpan={4} className="px-5 py-10 text-center text-sm text-text-muted">
                     {organizationId
                       ? "No recipes yet. Add your first recipe to get started."
                       : "Select an organization in the sidebar to manage recipes."}
                   </td>
                 </tr>
               ) : null}
-              {recipes.map((recipe) => {
-                const costPercent =
-                  recipe.menuPrice > 0
-                    ? (recipe.foodCost / recipe.menuPrice) * 100
-                    : null;
-
-                return (
+              {recipes.map((recipe) => (
                   <tr
                     key={recipe.id}
                     className="group bg-surface transition-colors hover:bg-surface-muted/40"
@@ -225,36 +219,17 @@ export function RecipesTable({
                       </span>
                     </td>
                     <td className="px-3 py-3 align-middle">
-                      <span
-                        className="block truncate text-text-secondary"
-                        title={formatYield(recipe.yieldQuantity, recipe.yieldUnit)}
-                      >
-                        {formatYield(recipe.yieldQuantity, recipe.yieldUnit)}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 align-middle">
-                      <span className="tabular-nums font-medium text-text-primary">
-                        ${recipe.foodCost.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 align-middle">
-                      <span className="tabular-nums font-medium text-text-primary">
-                        ${recipe.menuPrice.toFixed(2)}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3 align-middle">
                       <span className="text-text-secondary">
                         {recipe.ingredientCount}
                       </span>
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <span className="tabular-nums text-text-secondary">
-                        {costPercent !== null ? `${costPercent.toFixed(1)}%` : "—"}
+                        {formatCreatedAt(recipe.createdAt)}
                       </span>
                     </td>
                   </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>
@@ -265,6 +240,8 @@ export function RecipesTable({
         onClose={() => setCreateOpen(false)}
         onSave={handleSave}
         catalogItems={catalogItems}
+        batches={batches}
+        units={units}
       />
 
       <Modal

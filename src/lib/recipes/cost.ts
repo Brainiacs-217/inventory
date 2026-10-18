@@ -100,7 +100,7 @@ export function computeIngredientLineCost(
 ): number {
   const quantity = parseFloat(ingredient.quantity);
   if (Number.isNaN(quantity) || quantity <= 0) return 0;
-  const costPerUnit = getConvertedItemCostPerUnit(item, ingredient.unit);
+  const costPerUnit = getConvertedItemCostPerUnit(item, item.reportingUnit);
   return computeIngredientCost(quantity, costPerUnit);
 }
 
@@ -109,6 +109,7 @@ export function computeTotalIngredientCost(
   itemsById: Map<string, InventoryItem>,
 ): number {
   return ingredients.reduce((sum, ingredient) => {
+    if (!ingredient.itemId) return sum;
     const item = itemsById.get(ingredient.itemId);
     if (!item) return sum;
     return sum + computeIngredientLineCost(ingredient, item);

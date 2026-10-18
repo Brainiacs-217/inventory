@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import {
   RecipeField,
@@ -9,76 +9,157 @@ import {
   recipeInputClassName,
   recipeSelectClassName,
 } from "@/component/recipe/formShared";
-import { UNITS_OF_MEASURE } from "@/lib/lookups";
 import type { InventoryItem } from "@/types/item";
-import { createRecipeIngredientInput } from "@/types/recipe";
+import {
+  createRecipeIngredientInput,
+  type BatchOption,
+  type RecipeIngredientSource,
+  type UnitOption,
+} from "@/types/recipe";
 
 type IngredientSearchProps = {
   catalogItems: InventoryItem[];
+  batches: BatchOption[];
+  units: UnitOption[];
   onAdd: (ingredient: ReturnType<typeof createRecipeIngredientInput>) => void;
 };
 
-function unitOptionsForItem(item: InventoryItem): string[] {
-  return [...new Set([item.reportingUnit, ...UNITS_OF_MEASURE])];
+const SOURCE_OPTIONS: { id: RecipeIngredientSource; label: string }[] = [
+  { id: "item", label: "Item" },
+  { id: "batch", label: "Batch" },
+];
+
+const MEASUREMENT_LABELS: Record<UnitOption["measurementType"], string> = {
+  volume: "Volume",
+  mass: "Mass",
+  count: "Count",
+};
+
+function groupedUnits(units: UnitOption[]) {
+  return (["volume", "mass", "count"] as const)
+    .map((type) => ({
+      type,
+      label: MEASUREMENT_LABELS[type],
+      units: units.filter((unit) => unit.measurementType === type),
+    }))
+    .filter((group) => group.units.length > 0);
 }
 
-export function IngredientSearch({ catalogItems, onAdd }: IngredientSearchProps) {
+export function IngredientSearch({
+  catalogItems,
+  batches,
+  units,
+  onAdd,
+}: IngredientSearchProps) {
+  const [source, setSource] = useState<RecipeIngredientSource>("item");
   const [selectedItemId, setSelectedItemId] = useState("");
+  const [selectedBatchId, setSelectedBatchId] = useState("");
   const [amount, setAmount] = useState("");
-  const [unit, setUnit] = useState("");
+  const [unitId, setUnitId] = useState(units[0]?.id ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  const selectedItem = catalogItems.find((item) => item.id === selectedItemId);
-  const availableUnits = selectedItem ? unitOptionsForItem(selectedItem) : [];
+  const unitGroups = useMemo(() => groupedUnits(units), [units]);
+  const hasSource = source === "item" ? Boolean(selectedItemId) : Boolean(selectedBatchId);
 
-  function handleItemChange(itemId: string) {
-    const item = catalogItems.find((entry) => entry.id === itemId);
-    setSelectedItemId(itemId);
-    setUnit(item?.reportingUnit ?? "");
+  function handleSourceChange(next: RecipeIngredientSource) {
+    setSource(next);
     setError(null);
   }
 
   function handleAdd() {
-    if (!selectedItem) {
+    if (source === "item" && !selectedItemId) {
       setError("Pick an item first.");
+      return;
+    }
+    if (source === "batch" && !selectedBatchId) {
+      setError("Pick a batch first.");
       return;
     }
     const parsedAmount = parseFloat(amount);
     if (!amount.trim() || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-      setError("Enter an amount.");
+      setError("Enter an amount greater than 0.");
+      return;
+    }
+    if (!unitId) {
+      setError("Pick a unit.");
       return;
     }
 
-    onAdd({
-      ...createRecipeIngredientInput(selectedItem.id, unit || selectedItem.reportingUnit),
-      quantity: amount,
-    });
+    onAdd(
+      createRecipeIngredientInput({
+        source,
+        itemId: selectedItemId,
+        batchId: selectedBatchId,
+        quantity: amount,
+        unitId,
+      }),
+    );
     setSelectedItemId("");
+    setSelectedBatchId("");
     setAmount("");
-    setUnit("");
     setError(null);
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="grid grid-cols-[1.2fr_0.65fr_0.85fr_auto] items-end gap-x-3 gap-y-2.5">
-        <RecipeField label="Item" className="sm:col-span-1">
+      <div className="inline-flex w-fit rounded-md border border-border/80 bg-surface p-0.5">
+        {SOURCE_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => handleSourceChange(option.id)}
+            className={`rounded-sm px-2.5 py-1 text-xs font-medium transition-colors ${
+              source === option.id
+                ? "bg-sidebar-active text-text-primary shadow-sm"
+                : "text-text-muted hover:text-text-primary"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-[1.3fr_0.55fr_0.85fr_auto] items-end gap-x-3 gap-y-2.5">
+        <RecipeField label={source === "item" ? "Item" : "Batch"}>
           <RecipeSelectInput>
-            <select
-              value={selectedItemId}
-              onChange={(event) => handleItemChange(event.target.value)}
-              className={recipeSelectClassName}
-            >
-              <option value="">Choose item…</option>
-              {catalogItems.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
+            {source === "item" ? (
+              <select
+                value={selectedItemId}
+                onChange={(event) => {
+                  setSelectedItemId(event.target.value);
+                  setError(null);
+                }}
+                className={recipeSelectClassName}
+              >
+                <option value="">Choose item…</option>
+                {catalogItems.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={selectedBatchId}
+                onChange={(event) => {
+                  setSelectedBatchId(event.target.value);
+                  setError(null);
+                }}
+                className={recipeSelectClassName}
+              >
+                <option value="">
+                  {batches.length === 0 ? "No batches yet" : "Choose batch…"}
                 </option>
-              ))}
-            </select>
+                {batches.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    {batch.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </RecipeSelectInput>
         </RecipeField>
-        <RecipeField label="Amount">
+        <RecipeField label="Quantity">
           <input
             type="number"
             min="0"
@@ -89,22 +170,26 @@ export function IngredientSearch({ catalogItems, onAdd }: IngredientSearchProps)
               setAmount(event.target.value);
               setError(null);
             }}
-            disabled={!selectedItem}
+            disabled={!hasSource}
             className={recipeInputClassName}
           />
         </RecipeField>
         <RecipeField label="Unit">
           <RecipeSelectInput>
             <select
-              value={unit}
-              onChange={(event) => setUnit(event.target.value)}
-              disabled={!selectedItem}
+              value={unitId}
+              onChange={(event) => setUnitId(event.target.value)}
+              disabled={!hasSource}
               className={recipeSelectClassName}
             >
-              {availableUnits.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
+              {unitGroups.map((group) => (
+                <optgroup key={group.type} label={group.label}>
+                  {group.units.map((unit) => (
+                    <option key={unit.id} value={unit.id}>
+                      {unit.symbol} · {unit.name}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </RecipeSelectInput>

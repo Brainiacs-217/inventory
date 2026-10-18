@@ -196,32 +196,87 @@ export type Database = {
         };
         Relationships: [];
       };
-      recipe_ingredients: {
+      batches: {
         Row: {
-          id: string;
-          item_id: string;
-          quantity: number;
-          recipe_id: string;
-          sort_order: number;
-          unit: string;
+          created_at: string;
+          id: number;
+          name: string;
+          organization_id: string;
+          yield_quantity: number;
+          yield_unit_id: number;
         };
         Insert: {
-          id?: string;
-          item_id: string;
-          quantity: number;
-          recipe_id: string;
-          sort_order?: number;
-          unit: string;
+          created_at?: string;
+          id?: number;
+          name: string;
+          organization_id: string;
+          yield_quantity: number;
+          yield_unit_id: number;
         };
         Update: {
-          id?: string;
-          item_id?: string;
-          quantity?: number;
-          recipe_id?: string;
-          sort_order?: number;
-          unit?: string;
+          created_at?: string;
+          id?: number;
+          name?: string;
+          organization_id?: string;
+          yield_quantity?: number;
+          yield_unit_id?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: "batches_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "batches_yield_unit_id_fkey";
+            columns: ["yield_unit_id"];
+            isOneToOne: false;
+            referencedRelation: "units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      recipe_ingredients: {
+        Row: {
+          batch_id: number | null;
+          id: number;
+          item_id: number | null;
+          note: string | null;
+          quantity: number;
+          recipe_id: number;
+          role: string;
+          unit_id: number;
+        };
+        Insert: {
+          batch_id?: number | null;
+          id?: number;
+          item_id?: number | null;
+          note?: string | null;
+          quantity: number;
+          recipe_id: number;
+          role?: string;
+          unit_id: number;
+        };
+        Update: {
+          batch_id?: number | null;
+          id?: number;
+          item_id?: number | null;
+          note?: string | null;
+          quantity?: number;
+          recipe_id?: number;
+          role?: string;
+          unit_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "recipe_ingredients_item_id_fkey";
             columns: ["item_id"];
@@ -236,50 +291,33 @@ export type Database = {
             referencedRelation: "recipes";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "recipe_ingredients_unit_id_fkey";
+            columns: ["unit_id"];
+            isOneToOne: false;
+            referencedRelation: "units";
+            referencedColumns: ["id"];
+          },
         ];
       };
       recipes: {
         Row: {
           created_at: string;
-          food_cost: number;
-          id: string;
-          misc_cost: number;
+          id: number;
           name: string;
           organization_id: string;
-          sales_price: number;
-          serving_size_quantity: number | null;
-          serving_size_unit: string | null;
-          updated_at: string;
-          yield_quantity: number | null;
-          yield_unit: string | null;
         };
         Insert: {
           created_at?: string;
-          food_cost?: number;
-          id?: string;
-          misc_cost?: number;
+          id?: number;
           name: string;
           organization_id: string;
-          sales_price?: number;
-          serving_size_quantity?: number | null;
-          serving_size_unit?: string | null;
-          updated_at?: string;
-          yield_quantity?: number | null;
-          yield_unit?: string | null;
         };
         Update: {
           created_at?: string;
-          food_cost?: number;
-          id?: string;
-          misc_cost?: number;
+          id?: number;
           name?: string;
           organization_id?: string;
-          sales_price?: number;
-          serving_size_quantity?: number | null;
-          serving_size_unit?: string | null;
-          updated_at?: string;
-          yield_quantity?: number | null;
-          yield_unit?: string | null;
         };
         Relationships: [
           {
@@ -290,6 +328,30 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      units: {
+        Row: {
+          conversion_to_standard: number;
+          id: number;
+          measurement_type: "volume" | "mass" | "count";
+          name: string;
+          symbol: string;
+        };
+        Insert: {
+          conversion_to_standard: number;
+          id?: number;
+          measurement_type: "volume" | "mass" | "count";
+          name: string;
+          symbol: string;
+        };
+        Update: {
+          conversion_to_standard?: number;
+          id?: number;
+          measurement_type?: "volume" | "mass" | "count";
+          name?: string;
+          symbol?: string;
+        };
+        Relationships: [];
       };
       square_connections: {
         Row: {

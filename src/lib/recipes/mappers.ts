@@ -1,39 +1,53 @@
-import { parseOptionalNumber } from "@/lib/recipes/cost";
-import type { CreateRecipeFormValues, Recipe } from "@/types/recipe";
+import type {
+  CreateRecipeFormValues,
+  Recipe,
+  RecipeIngredientInput,
+} from "@/types/recipe";
 import type { Tables, TablesInsert } from "@/types/database";
+
+function toNumericId(id: string): number {
+  return Number(id);
+}
 
 export function mapFormToRecipeInsert(
   values: CreateRecipeFormValues,
   organizationId: string,
-  foodCost: number,
 ): TablesInsert<"recipes"> {
   return {
     organization_id: organizationId,
     name: values.name.trim(),
-    yield_quantity: parseOptionalNumber(values.yieldQuantity),
-    yield_unit: values.yieldUnit.trim() || null,
-    serving_size_quantity: parseOptionalNumber(values.servingSizeQuantity),
-    serving_size_unit: values.servingSizeUnit.trim() || null,
-    sales_price: parseFloat(values.salesPrice) || 0,
-    misc_cost: parseFloat(values.miscCost) || 0,
-    food_cost: foodCost,
   };
 }
 
+export function mapFormToRecipeIngredientInserts(
+  recipeId: number,
+  ingredients: RecipeIngredientInput[],
+): TablesInsert<"recipe_ingredients">[] {
+  return ingredients.map((ingredient) => ({
+    recipe_id: recipeId,
+    item_id:
+      ingredient.source === "item" && ingredient.itemId
+        ? toNumericId(ingredient.itemId)
+        : null,
+    batch_id:
+      ingredient.source === "batch" && ingredient.batchId
+        ? toNumericId(ingredient.batchId)
+        : null,
+    quantity: parseFloat(ingredient.quantity),
+    unit_id: toNumericId(ingredient.unitId),
+    role: ingredient.role,
+    note: ingredient.note.trim() || null,
+  }));
+}
+
 export function mapRecipeRowToRecipe(
-  row: Tables<"recipes"> & { recipe_ingredients?: { id: string }[] },
+  row: Tables<"recipes"> & { recipe_ingredients?: { id: number }[] },
 ): Recipe {
   return {
-    id: row.id,
+    id: String(row.id),
     name: row.name,
-    yieldQuantity: row.yield_quantity,
-    yieldUnit: row.yield_unit,
-    servingSizeQuantity: row.serving_size_quantity,
-    servingSizeUnit: row.serving_size_unit,
-    salesPrice: row.sales_price,
-    miscCost: row.misc_cost,
-    foodCost: row.food_cost,
-    menuPrice: row.sales_price,
+    createdAt: row.created_at,
     ingredientCount: row.recipe_ingredients?.length ?? 0,
   };
 }
+
