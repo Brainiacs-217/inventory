@@ -73,11 +73,14 @@ export function CreateRecipeModal({
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setValues(createEmptyRecipeFormValues());
     setErrors({});
+    setSaving(false);
+    setSubmitError(null);
   }, [open]);
 
   function updateField<K extends keyof CreateRecipeFormValues>(
@@ -120,39 +123,48 @@ export function CreateRecipeModal({
     const validationErrors = validateForm(values);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      const scrollId = validationErrors.name ? "recipe-name" : "recipe-ingredients";
+      requestAnimationFrame(() => {
+        document.getElementById(scrollId)?.scrollIntoView({ block: "center" });
+      });
       return;
     }
 
     setSaving(true);
+    setSubmitError(null);
     try {
       await onSave(values);
       onClose();
     } catch (error) {
-      setErrors({
-        name: error instanceof Error ? error.message : "Failed to save recipe.",
-      });
+      setSubmitError(
+        error instanceof Error ? error.message : "Failed to save recipe.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
   const footer = (
-    <div className="flex justify-end gap-2.5">
-      <button
-        type="button"
-        onClick={onClose}
-        className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary"
-      >
-        Cancel
-      </button>
-      <button
-        type="submit"
-        form="create-recipe-form"
-        disabled={saving}
-        className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
-      >
-        {saving ? "Saving…" : "Save recipe"}
-      </button>
+    <div className="flex flex-col gap-2">
+      {submitError ? <p className="text-xs text-error">{submitError}</p> : null}
+      <div className="flex gap-2.5 md:justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50 max-md:min-h-11 max-md:flex-1 max-md:text-base"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="create-recipe-form"
+          disabled={saving}
+          className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50 max-md:min-h-11 max-md:flex-1 max-md:text-base"
+        >
+          {saving ? "Saving…" : "Save recipe"}
+        </button>
+      </div>
     </div>
   );
 
@@ -163,12 +175,21 @@ export function CreateRecipeModal({
       title="Create recipe"
       footer={footer}
       size="xl"
-      bodyClassName="overflow-hidden py-3"
+      mobileSheet
+      bodyClassName="overflow-y-auto overscroll-contain py-4 md:py-3"
     >
       <form
         id="create-recipe-form"
         onSubmit={handleSubmit}
-        className="flex flex-col gap-3"
+        onFocus={(event) => {
+          if (!window.matchMedia("(max-width: 767px)").matches) return;
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          window.setTimeout(() => {
+            target.scrollIntoView({ block: "center" });
+          }, 300);
+        }}
+        className="flex flex-col gap-6 pb-4 md:gap-3 md:pb-0"
       >
         <RecipeFormSection
           step="01"
@@ -187,7 +208,7 @@ export function CreateRecipeModal({
           title="Ingredients"
           description="Each line is an item or a batch, with quantity, unit, role, and an optional note."
         >
-          <div className="flex h-full flex-col gap-2.5">
+          <div id="recipe-ingredients" className="flex scroll-my-4 flex-col gap-2.5">
             <IngredientSearch
               catalogItems={catalogItems}
               batches={batches}

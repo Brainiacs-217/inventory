@@ -102,13 +102,13 @@ export function IngredientSearch({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="inline-flex w-fit rounded-md border border-border/80 bg-surface p-0.5">
+      <div className="inline-flex w-full rounded-md border border-border/80 bg-surface p-0.5 md:w-fit">
         {SOURCE_OPTIONS.map((option) => (
           <button
             key={option.id}
             type="button"
             onClick={() => handleSourceChange(option.id)}
-            className={`rounded-sm px-2.5 py-1 text-xs font-medium transition-colors ${
+            className={`min-h-11 flex-1 rounded-sm px-2.5 py-2 text-sm font-medium transition-colors md:min-h-0 md:flex-none md:py-1 md:text-xs ${
               source === option.id
                 ? "bg-sidebar-active text-text-primary shadow-sm"
                 : "text-text-muted hover:text-text-primary"
@@ -119,8 +119,11 @@ export function IngredientSearch({
         ))}
       </div>
 
-      <div className="grid grid-cols-[1.3fr_0.55fr_0.85fr_auto] items-end gap-x-3 gap-y-2.5">
-        <RecipeField label={source === "item" ? "Item" : "Batch"}>
+      <div className="grid grid-cols-2 items-end gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.55fr)_minmax(0,0.85fr)_auto] md:gap-x-3 md:gap-y-2.5">
+        <RecipeField
+          label={source === "item" ? "Item" : "Batch"}
+          className="col-span-2 md:col-span-1"
+        >
           <RecipeSelectInput>
             {source === "item" ? (
               <select
@@ -194,11 +197,11 @@ export function IngredientSearch({
             </select>
           </RecipeSelectInput>
         </RecipeField>
-        <div className="flex items-end">
+        <div className="col-span-2 flex items-end md:col-span-1">
           <button
             type="button"
             onClick={handleAdd}
-            className="inline-flex w-full items-center justify-center gap-1 rounded-sm bg-accent px-3 py-1 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover"
+            className="inline-flex min-h-11 w-full items-center justify-center gap-1 rounded-sm bg-accent px-3 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover md:min-h-0 md:py-1.5"
           >
             <Plus className="size-3.5" strokeWidth={2} aria-hidden />
             Add

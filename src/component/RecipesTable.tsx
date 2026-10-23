@@ -1,12 +1,12 @@
 "use client";
 
-import { BookOpen, Plus, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { CreateRecipeModal } from "@/component/CreateRecipeModal";
 import { Modal } from "@/component/Modal";
-import { CHART_ICON_BADGE_CLASS } from "@/lib/chartInteraction";
+import { RecipesMobileList } from "@/component/RecipesMobileList";
 import { createRecipe, deleteRecipes } from "@/lib/recipes/actions";
 import type { InventoryItem } from "@/types/item";
 import type {
@@ -17,15 +17,32 @@ import type {
 } from "@/types/recipe";
 
 const SELECT_CELL_CLASS = "w-11 px-3 py-3 text-center align-middle";
+const TABLE_CLASS = "w-full table-fixed border-collapse text-sm";
 
-function formatRecipeCount(count: number): string {
-  return count === 1 ? "1 recipe" : `${count} recipes`;
+const SEARCH_INPUT_CLASS =
+  "w-full rounded-md border border-border/80 bg-surface py-2 pl-9 pr-3 text-sm text-text-primary shadow-sm outline-none placeholder:text-text-muted/60 transition-[border-color,box-shadow] hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50";
+
+function formatRecipeCount(
+  visibleCount: number,
+  totalCount: number,
+  isFiltering: boolean,
+): string {
+  if (!isFiltering || totalCount === 0) {
+    return totalCount === 1 ? "1 recipe" : `${totalCount} recipes`;
+  }
+  return `${visibleCount} of ${totalCount} ${totalCount === 1 ? "recipe" : "recipes"}`;
 }
 
 function formatCreatedAt(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
   return date.toLocaleDateString();
+}
+
+function recipeMatchesQuery(recipe: Recipe, query: string): boolean {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return true;
+  return recipe.name.toLowerCase().includes(normalized);
 }
 
 type RecipesTableProps = {
@@ -44,13 +61,31 @@ export function RecipesTable({
   organizationId,
 }: RecipesTableProps) {
   const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    ids: string[];
+    prompt: string;
+  } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const allSelected = recipes.length > 0 && selectedIds.size === recipes.length;
+  const isFiltering = searchQuery.trim().length > 0;
+  const visibleRecipes = useMemo(
+    () =>
+      isFiltering
+        ? recipes.filter((recipe) => recipeMatchesQuery(recipe, searchQuery))
+        : recipes,
+    [isFiltering, recipes, searchQuery],
+  );
+
+  const allSelected =
+    visibleRecipes.length > 0 &&
+    visibleRecipes.every((recipe) => selectedIds.has(recipe.id));
+  const someVisibleSelected = visibleRecipes.some((recipe) =>
+    selectedIds.has(recipe.id),
+  );
   const someSelected = selectedIds.size > 0;
   const selectedCount = selectedIds.size;
 
@@ -80,123 +115,191 @@ export function RecipesTable({
   }
 
   function toggleSelectAll() {
-    setSelectedIds(
-      allSelected ? new Set() : new Set(recipes.map((recipe) => recipe.id)),
-    );
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (allSelected) {
+        for (const recipe of visibleRecipes) {
+          next.delete(recipe.id);
+        }
+        return next;
+      }
+      for (const recipe of visibleRecipes) {
+        next.add(recipe.id);
+      }
+      return next;
+    });
+  }
+
+  function requestDelete(ids: string[], prompt: string) {
+    if (!organizationId || ids.length === 0) return;
+    setDeleteError(null);
+    setPendingDelete({ ids, prompt });
   }
 
   function handleDeleteClick() {
     if (!someSelected) return;
-    setDeleteError(null);
-    setDeleteConfirmOpen(true);
+    const prompt =
+      allSelected && !isFiltering
+        ? "Are you sure you want to delete all recipes?"
+        : `Are you sure you want to delete ${selectedCount} selected ${selectedCount === 1 ? "recipe" : "recipes"}?`;
+    requestDelete(Array.from(selectedIds), prompt);
   }
 
   async function handleDeleteConfirm() {
-    if (!organizationId || !someSelected) return;
+    if (!organizationId || !pendingDelete) return;
 
     setDeleting(true);
     setDeleteError(null);
 
-    const result = await deleteRecipes(organizationId, Array.from(selectedIds));
+    const result = await deleteRecipes(organizationId, pendingDelete.ids);
     if ("error" in result) {
       setDeleteError(result.error);
       setDeleting(false);
       return;
     }
 
-    setSelectedIds(new Set());
+    const deletedIds = new Set(result.data.deletedIds);
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const id of deletedIds) next.delete(id);
+      return next;
+    });
     setDeleting(false);
-    setDeleteConfirmOpen(false);
+    setPendingDelete(null);
     router.refresh();
   }
 
   function handleDeleteCancel() {
     if (deleting) return;
-    setDeleteConfirmOpen(false);
+    setPendingDelete(null);
     setDeleteError(null);
   }
 
   return (
     <>
-      <div className="w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
-        <div className="flex shrink-0 items-center justify-between gap-4 border-b border-border/80 bg-surface px-5 py-3.5">
-          <div className="flex items-center gap-3">
-            <div className={CHART_ICON_BADGE_CLASS}>
-              <BookOpen className="size-4 text-text-muted" strokeWidth={1.75} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold tracking-tight text-text-primary">
-                {formatRecipeCount(recipes.length)}
-              </p>
-              <p className="text-xs text-text-muted">
-                {!organizationId
-                  ? "Select an organization to view recipes"
-                  : "In your catalog"}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              disabled={!someSelected || !organizationId}
-              className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-surface px-4 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border/80 disabled:hover:bg-surface disabled:hover:text-text-secondary"
-            >
-              <Trash2 className="size-4" strokeWidth={2} />
-              Delete
-            </button>
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              disabled={!organizationId}
-              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Plus className="size-4" strokeWidth={2} />
-              Add recipe
-            </button>
-          </div>
-        </div>
+      <RecipesMobileList
+        organizationId={organizationId}
+        searchQuery={searchQuery}
+        onSearchQuery={setSearchQuery}
+        visibleRecipes={visibleRecipes}
+        totalCount={recipes.length}
+        isFiltering={isFiltering}
+        selectedIds={selectedIds}
+        allSelected={allSelected}
+        onToggleRecipe={toggleSelection}
+        onToggleSelectAll={toggleSelectAll}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onRequestDelete={requestDelete}
+        onAdd={() => setCreateOpen(true)}
+      />
 
-        <div className="overflow-x-auto">
-          <table className="w-full table-fixed border-collapse text-sm">
-            <colgroup>
-              <col className="w-11" />
-              <col className="w-[46%]" />
-              <col className="w-[22%]" />
-              <col className="w-[22%]" />
-            </colgroup>
-            <thead className="sticky top-0 z-10">
-              <tr className="border-b border-border/80 bg-surface-muted/80 text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted backdrop-blur-sm">
-                <th className={SELECT_CELL_CLASS}>
-                  <input
-                    type="checkbox"
-                    aria-label="Select all recipes"
-                    checked={allSelected}
-                    ref={(input) => {
-                      if (input) {
-                        input.indeterminate = someSelected && !allSelected;
-                      }
-                    }}
-                    onChange={toggleSelectAll}
-                    className="size-4 rounded border-border/80 accent-accent"
-                  />
-                </th>
-                <th className="px-3 py-3">Name</th>
-                <th className="px-3 py-3">Lines</th>
-                <th className="px-3 py-3">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/60">
-              {recipes.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-5 py-10 text-center text-sm text-text-muted">
-                    {organizationId
-                      ? "No recipes yet. Add your first recipe to get started."
-                      : "Select an organization in the sidebar to manage recipes."}
-                  </td>
+      <div className="hidden h-full min-h-0 flex-1 flex-col overflow-hidden md:flex">
+        <p className="mb-4 shrink-0 text-sm text-text-muted">
+          {formatRecipeCount(visibleRecipes.length, recipes.length, isFiltering)}
+        </p>
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
+          <div className="flex shrink-0 items-center gap-2 border-b border-border/80 bg-surface px-5 py-3.5">
+            <div className="relative min-w-0 max-w-sm flex-1">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-text-muted"
+              />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search recipes…"
+                disabled={!organizationId}
+                aria-label="Search recipes"
+                className={SEARCH_INPUT_CLASS}
+              />
+            </div>
+            {isFiltering ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text-primary"
+              >
+                <X className="size-3.5" strokeWidth={2} />
+                Clear
+              </button>
+            ) : null}
+            <div className="ml-auto flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                disabled={!someSelected || !organizationId}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border/80 bg-surface px-4 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border/80 disabled:hover:bg-surface disabled:hover:text-text-secondary"
+              >
+                <Trash2 className="size-4" strokeWidth={2} />
+                Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                disabled={!organizationId}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Plus className="size-4" strokeWidth={2} />
+                Add recipe
+              </button>
+            </div>
+          </div>
+
+          <div className="shrink-0">
+            <table className={TABLE_CLASS}>
+              <colgroup>
+                <col className="w-11" />
+                <col className="w-[46%]" />
+                <col className="w-[22%]" />
+                <col className="w-[22%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-border/80 bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+                  <th className={SELECT_CELL_CLASS}>
+                    <input
+                      type="checkbox"
+                      aria-label="Select all recipes"
+                      checked={allSelected}
+                      ref={(input) => {
+                        if (input) {
+                          input.indeterminate = someVisibleSelected && !allSelected;
+                        }
+                      }}
+                      onChange={toggleSelectAll}
+                      className="size-4 rounded border-border/80 accent-accent"
+                    />
+                  </th>
+                  <th className="px-3 py-3">Name</th>
+                  <th className="px-3 py-3">Lines</th>
+                  <th className="px-3 py-3">Created</th>
                 </tr>
-              ) : null}
-              {recipes.map((recipe) => (
+              </thead>
+            </table>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-none">
+            <table className={TABLE_CLASS}>
+              <colgroup>
+                <col className="w-11" />
+                <col className="w-[46%]" />
+                <col className="w-[22%]" />
+                <col className="w-[22%]" />
+              </colgroup>
+              <tbody className="divide-y divide-border/60">
+                {visibleRecipes.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="px-5 py-10 text-center text-sm text-text-muted">
+                      {organizationId
+                        ? isFiltering && recipes.length > 0
+                          ? "No recipes match your search."
+                          : "No recipes yet. Add your first recipe to get started."
+                        : "Select an organization in the sidebar to manage recipes."}
+                    </td>
+                  </tr>
+                ) : null}
+                {visibleRecipes.map((recipe) => (
                   <tr
                     key={recipe.id}
                     className="group bg-surface transition-colors hover:bg-surface-muted/40"
@@ -219,9 +322,7 @@ export function RecipesTable({
                       </span>
                     </td>
                     <td className="px-3 py-3 align-middle">
-                      <span className="text-text-secondary">
-                        {recipe.ingredientCount}
-                      </span>
+                      <span className="text-text-secondary">{recipe.ingredientCount}</span>
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <span className="tabular-nums text-text-secondary">
@@ -229,9 +330,10 @@ export function RecipesTable({
                       </span>
                     </td>
                   </tr>
-              ))}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -245,7 +347,7 @@ export function RecipesTable({
       />
 
       <Modal
-        open={deleteConfirmOpen}
+        open={pendingDelete != null}
         onClose={handleDeleteCancel}
         title="Delete recipes"
         footer={
@@ -272,11 +374,7 @@ export function RecipesTable({
           </div>
         }
       >
-        <p className="text-sm text-text-secondary">
-          {allSelected
-            ? "Are you sure you want to delete all recipes?"
-            : `Are you sure you want to delete ${selectedCount} selected ${selectedCount === 1 ? "recipe" : "recipes"}?`}
-        </p>
+        <p className="text-sm text-text-secondary">{pendingDelete?.prompt}</p>
       </Modal>
     </>
   );

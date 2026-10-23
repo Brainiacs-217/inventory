@@ -2,7 +2,7 @@ import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 
 export const recipeInputClassName =
-  "rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-sm text-text-primary shadow-sm transition-[border-color,box-shadow] outline-none placeholder:text-text-muted/60 hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 w-full";
+  "w-full rounded-sm border border-border/80 bg-surface px-2.5 py-1.5 text-sm text-text-primary shadow-sm transition-[border-color,box-shadow] outline-none placeholder:text-text-muted/60 hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 max-md:min-h-11 max-md:text-base";
 
 export const recipeSelectClassName = `${recipeInputClassName} appearance-none pr-8`;
 
@@ -14,6 +14,7 @@ export const recipeSectionRowClassName = "grid grid-cols-2 gap-3";
 export const recipeFieldGridClassName = "grid grid-cols-2 gap-x-3 gap-y-2.5";
 
 type FieldProps = {
+  id?: string;
   label: string;
   required?: boolean;
   error?: string;
@@ -23,6 +24,7 @@ type FieldProps = {
 };
 
 export function RecipeField({
+  id,
   label,
   required,
   error,
@@ -31,7 +33,7 @@ export function RecipeField({
   hint,
 }: FieldProps) {
   return (
-    <div className={`flex flex-col gap-1 ${className ?? ""}`}>
+    <div id={id} className={`flex min-w-0 scroll-my-4 flex-col gap-1 ${className ?? ""}`}>
       <label className={recipeLabelClassName}>
         {label}
         {required && <span className="text-error"> *</span>}
@@ -78,10 +80,13 @@ export function RecipeFormSection({
 }) {
   return (
     <section
-      className={`flex h-full flex-col overflow-hidden rounded-sm border border-border/80 bg-surface ${className ?? ""}`}
+      className={`flex flex-col gap-3 md:h-full md:gap-0 md:overflow-hidden md:rounded-sm md:border md:border-border/80 md:bg-surface ${className ?? ""}`}
     >
-      <header className="border-b border-border/80 bg-surface-muted/25 px-3 py-2">
-        <div className="flex items-start gap-2.5">
+      <header className="md:border-b md:border-border/80 md:bg-surface-muted/25 md:px-3 md:py-2">
+        <h3 className="text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted md:hidden">
+          {title}
+        </h3>
+        <div className="hidden items-start gap-2.5 md:flex">
           <span className="pt-0.5 text-xs font-bold tabular-nums tracking-wide text-text-primary">
             {step}
           </span>
@@ -101,7 +106,7 @@ export function RecipeFormSection({
           </div>
         </div>
       </header>
-      <div className="flex min-h-0 flex-1 flex-col p-3">{children}</div>
+      <div className="flex flex-col md:min-h-0 md:flex-1 md:p-3">{children}</div>
     </section>
   );
 }

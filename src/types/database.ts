@@ -238,6 +238,52 @@ export type Database = {
           },
         ];
       };
+      batch_ingredients: {
+        Row: {
+          batch_id: number;
+          id: number;
+          item_id: number;
+          quantity: number;
+          unit_id: number;
+        };
+        Insert: {
+          batch_id: number;
+          id?: number;
+          item_id: number;
+          quantity: number;
+          unit_id: number;
+        };
+        Update: {
+          batch_id?: number;
+          id?: number;
+          item_id?: number;
+          quantity?: number;
+          unit_id?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "batch_ingredients_batch_id_fkey";
+            columns: ["batch_id"];
+            isOneToOne: false;
+            referencedRelation: "batches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "batch_ingredients_item_id_fkey";
+            columns: ["item_id"];
+            isOneToOne: false;
+            referencedRelation: "items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "batch_ingredients_unit_id_fkey";
+            columns: ["unit_id"];
+            isOneToOne: false;
+            referencedRelation: "units";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       recipe_ingredients: {
         Row: {
           batch_id: number | null;

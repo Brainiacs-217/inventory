@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Search, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/lookups";
 import type { InventoryItem } from "@/types/item";
@@ -107,15 +107,14 @@ export function ItemsMobileList({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-none">
-      <div className="sticky top-0 z-10 mb-3 flex flex-col gap-2 bg-background">
+      <div className="flex shrink-0 flex-col gap-2 pb-3">
         <div className="flex rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
           {ITEM_CATEGORIES.map((section) => (
             <button
               key={section}
               type="button"
               onClick={() => onSectionChange(section)}
-              className={`min-w-0 flex-1 rounded-md px-2 py-3 text-sm font-medium transition-colors ${
+              className={`min-w-0 flex-1 rounded-md px-2 py-2 text-sm font-medium transition-colors ${
                 activeSection === section
                   ? "bg-sidebar-active text-text-primary shadow-sm"
                   : "text-text-muted hover:text-text-primary"
@@ -185,6 +184,8 @@ export function ItemsMobileList({
           </button>
         ) : null}
       </div>
+
+      <FaintScroller>
         {visibleItems.length === 0 ? (
           <p className="px-2 py-10 text-center text-sm text-text-muted">
             {organizationId
@@ -205,7 +206,7 @@ export function ItemsMobileList({
                       selecting ? onToggleItem(item.id) : setOpenItem(item)
                     }
                     aria-pressed={selecting ? selected : undefined}
-                    className={`flex w-full items-center gap-3 py-3 text-left ${
+                    className={`flex w-full items-center gap-3 py-2 pr-3 text-left ${
                       selected ? "bg-surface-muted/50" : ""
                     }`}
                   >
@@ -223,7 +224,7 @@ export function ItemsMobileList({
                       <span className="block truncate text-base font-medium text-text-primary">
                         {item.name}
                       </span>
-                      <span className="mt-1 block truncate text-[13px] font-normal leading-5 text-text-muted">
+                      <span className="mt-0.5 block truncate text-[13px] font-normal leading-5 text-text-muted">
                         {rowMeta(item, categoryFilter.length > 0)}
                       </span>
                     </span>
@@ -236,7 +237,7 @@ export function ItemsMobileList({
             })}
           </ul>
         )}
-      </div>
+      </FaintScroller>
 
       <div className="shrink-0 pt-6">
         {selecting ? (
@@ -352,6 +353,84 @@ export function ItemsMobileList({
           </dl>
         ) : null}
       </MobileSheet>
+    </div>
+  );
+}
+
+function FaintScroller({ children }: { children: ReactNode }) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const frameRef = useRef(0);
+  const [thumb, setThumb] = useState({ top: 0, height: 0, show: false });
+
+  const measure = useCallback(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = scroller;
+    const overflow = scrollHeight - clientHeight;
+    if (overflow <= 1 || clientHeight <= 0) {
+      setThumb((current) =>
+        current.show ? { top: 0, height: 0, show: false } : current,
+      );
+      return;
+    }
+
+    const height = Math.max(28, (clientHeight / scrollHeight) * clientHeight);
+    const top = (scrollTop / overflow) * (clientHeight - height);
+    setThumb((current) => {
+      if (
+        current.show &&
+        Math.abs(current.top - top) < 0.5 &&
+        Math.abs(current.height - height) < 0.5
+      ) {
+        return current;
+      }
+      return { top, height, show: true };
+    });
+  }, []);
+
+  useEffect(() => {
+    measure();
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    if (scroller.firstElementChild instanceof Element) {
+      observer.observe(scroller.firstElementChild);
+    }
+
+    return () => observer.disconnect();
+  }, [measure, children]);
+
+  useEffect(() => {
+    return () => cancelAnimationFrame(frameRef.current);
+  }, []);
+
+  return (
+    <div className="relative min-h-0 flex-1">
+      <div
+        ref={scrollerRef}
+        onScroll={() => {
+          cancelAnimationFrame(frameRef.current);
+          frameRef.current = requestAnimationFrame(measure);
+        }}
+        className="scrollbar-hidden h-full overflow-y-auto overscroll-none"
+      >
+        {children}
+      </div>
+      {thumb.show ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 w-2"
+        >
+          <div className="absolute inset-y-0 right-0.5 w-1 rounded-full bg-border" />
+          <div
+            className="absolute right-0.5 w-1 rounded-full bg-text-muted/55"
+            style={{ height: thumb.height, transform: `translateY(${thumb.top}px)` }}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

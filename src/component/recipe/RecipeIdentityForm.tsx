@@ -14,14 +14,13 @@ export function RecipeIdentityForm({
   onChange,
 }: RecipeIdentityFormProps) {
   return (
-    <RecipeField label="Recipe name" required error={error}>
+    <RecipeField id="recipe-name" label="Recipe name" required error={error}>
       <input
         type="text"
         placeholder="e.g. Classic cheeseburger"
         value={name}
         onChange={(event) => onChange(event.target.value)}
         className={recipeInputClassName}
-        autoFocus
       />
     </RecipeField>
   );

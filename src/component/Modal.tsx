@@ -129,13 +129,14 @@ export function Modal({
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className={`flex shrink-0 items-start justify-between gap-4 border-b border-border/80 bg-surface-muted/40 ${
+          className={`shrink-0 border-b border-border/80 bg-surface-muted/40 ${
             mobileSheet
-              ? "pr-[max(1rem,env(safe-area-inset-right))] pb-3.5 pl-[max(1rem,env(safe-area-inset-left))] pt-[calc(0.875rem+env(safe-area-inset-top))] md:px-5 md:py-3.5"
-              : "px-5 py-3.5"
+              ? "grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center pr-[max(1rem,env(safe-area-inset-right))] pb-3.5 pl-[max(1rem,env(safe-area-inset-left))] pt-[calc(0.875rem+env(safe-area-inset-top))] md:flex md:items-start md:justify-between md:gap-4 md:px-5 md:py-3.5"
+              : "flex items-start justify-between gap-4 px-5 py-3.5"
           }`}
         >
-          <div className="min-w-0">
+          {mobileSheet ? <div className="md:hidden" aria-hidden /> : null}
+          <div className={`min-w-0 ${mobileSheet ? "text-center md:text-left" : ""}`}>
             <h2
               id="modal-title"
               className="text-base font-semibold tracking-tight text-text-primary"
@@ -152,7 +153,7 @@ export function Modal({
             aria-label="Close"
             className={`shrink-0 rounded-md text-text-muted transition-colors hover:bg-surface-muted hover:text-text-primary ${
               mobileSheet
-                ? "flex size-11 items-center justify-center md:size-auto md:p-1.5"
+                ? "flex size-11 items-center justify-center justify-self-end md:size-auto md:justify-self-auto md:p-1.5"
                 : "p-1.5"
             }`}
           >
