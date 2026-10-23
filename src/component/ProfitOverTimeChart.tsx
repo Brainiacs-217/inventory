@@ -27,7 +27,7 @@ import type { MonthlyProfit } from "@/types/dashboard";
 import { useFollowCursorTooltip } from "@/hooks/useFollowCursorTooltip";
 
 const CHART_CARD_CLASS =
-  "w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
+  "w-full shrink-0 overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
 
 const PROFIT_FILL_GRADIENT_ID = "fill-profit";
 
@@ -171,7 +171,7 @@ export function ProfitOverTimeChart({ data }: ProfitOverTimeChartProps) {
     : [];
 
   return (
-    <div className={`${CHART_CARD_CLASS} shrink-0`}>
+    <div className={CHART_CARD_CLASS}>
       <div className="flex shrink-0 items-center gap-3 border-b border-border/80 bg-surface px-5 py-3.5">
         <div className={CHART_ICON_BADGE_CLASS}>
           <TrendingUp className="size-4 text-text-muted" strokeWidth={1.75} />

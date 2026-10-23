@@ -4,6 +4,8 @@
 @layer base {
   html {
     color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   body {
@@ -20,6 +22,24 @@
 
   &::-webkit-scrollbar {
     display: none;
+  }
+}
+
+/* iOS Safari ignores user-scalable=no. pan-x/pan-y keeps scrolling and blocks pinch and double-tap zoom. */
+*,
+*::before,
+*::after {
+  touch-action: pan-x pan-y;
+}
+
+/* iOS zooms the page when a focused field is under 16px, and it ignores maximum-scale. */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+      [type="hidden"]
+    ):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  select,
+  textarea {
+    font-size: 16px;
   }
 }
 

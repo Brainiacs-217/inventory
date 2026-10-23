@@ -2,12 +2,18 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type FormEvent, type PointerEvent } from "react";
 
 import { createClient } from "@/lib/supabase/client";
 import { signUpWithEmail } from "@/lib/auth/actions";
 
 type AuthMode = "login" | "signup";
+
+function keepPasswordInputFocused(event: PointerEvent<HTMLButtonElement>) {
+  if (event.pointerType === "mouse") {
+    event.preventDefault();
+  }
+}
 
 function GoogleIcon() {
   return (
@@ -44,7 +50,7 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setLoading(true);
@@ -92,6 +98,9 @@ export function AuthForm() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
 
@@ -113,9 +122,9 @@ export function AuthForm() {
   const submitLabel = mode === "login" ? "Sign in" : "Create account";
 
   return (
-    <div className="flex w-full max-w-sm flex-col items-center">
-      <div className="w-full rounded-lg border border-border bg-surface p-8 shadow-sm">
-        <h1 className="mb-6 text-2xl font-semibold tracking-tight text-text-primary">
+    <div className="flex w-full min-w-0 flex-col items-center">
+      <div className="w-full rounded-lg border border-border bg-surface p-5 shadow-sm sm:p-8">
+        <h1 className="mb-5 text-2xl font-semibold tracking-tight text-text-primary sm:mb-6">
           {title}
         </h1>
 
@@ -160,9 +169,10 @@ export function AuthForm() {
               />
               <button
                 type="button"
+                onPointerDown={keepPasswordInputFocused}
                 onClick={() => setShowPassword((prev) => !prev)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-muted transition-colors hover:text-text-primary"
+                className="absolute inset-y-0 right-0 z-10 flex w-11 cursor-pointer touch-manipulation items-center justify-center rounded text-text-muted transition-colors hover:text-text-primary"
               >
                 {showPassword ? (
                   <EyeOff aria-hidden className="h-4 w-4" strokeWidth={2} />
@@ -194,11 +204,12 @@ export function AuthForm() {
                 />
                 <button
                   type="button"
+                  onPointerDown={keepPasswordInputFocused}
                   onClick={() => setShowConfirmPassword((prev) => !prev)}
                   aria-label={
                     showConfirmPassword ? "Hide password" : "Show password"
                   }
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-text-muted transition-colors hover:text-text-primary"
+                  className="absolute inset-y-0 right-0 z-10 flex w-11 cursor-pointer touch-manipulation items-center justify-center rounded text-text-muted transition-colors hover:text-text-primary"
                 >
                   {showConfirmPassword ? (
                     <EyeOff aria-hidden className="h-4 w-4" strokeWidth={2} />
@@ -219,39 +230,31 @@ export function AuthForm() {
           <button
             type="submit"
             disabled={loading || googleLoading}
-            className="mt-2 rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="relative z-10 mt-2 cursor-pointer touch-manipulation rounded-md bg-accent px-4 py-3 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
             {loading ? "Please wait..." : submitLabel}
           </button>
         </form>
 
         {mode === "login" && (
-          <>
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={loading || googleLoading}
-              className="flex w-full items-center justify-center gap-3 rounded-md border border-border bg-background px-4 py-2.5 text-sm font-medium text-text-primary transition-colors hover:bg-surface-muted disabled:opacity-50"
-            >
-              <GoogleIcon />
-              {googleLoading ? "Please wait..." : "Sign in with Google"}
-            </button>
-          </>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            disabled={loading || googleLoading}
+            className="relative z-10 mt-3 flex w-full cursor-pointer touch-manipulation items-center justify-center gap-3 rounded-md border border-border bg-background px-4 py-3 text-sm font-medium text-text-primary transition-colors hover:bg-surface-muted disabled:opacity-50"
+          >
+            <GoogleIcon />
+            {googleLoading ? "Please wait..." : "Sign in with Google"}
+          </button>
         )}
       </div>
 
-      <p className="mt-6 text-sm text-text-secondary">
+      <p className="mt-4 text-center text-sm text-text-secondary sm:mt-6">
         {mode === "login" ? "Don't have an account?" : "Have an account?"}{" "}
         <button
           type="button"
           onClick={toggleMode}
-          className="font-medium text-link underline-offset-4 hover:text-link-hover hover:underline"
+          className="cursor-pointer touch-manipulation p-1 font-medium text-link underline-offset-4 hover:text-link-hover hover:underline"
         >
           {mode === "login" ? "Sign up" : "Log in"}
         </button>

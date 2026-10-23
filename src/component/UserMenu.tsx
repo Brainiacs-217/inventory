@@ -91,7 +91,7 @@ export function UserMenu() {
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label="Account menu"
-        className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-surface-muted text-xs font-semibold text-text-secondary transition-colors hover:bg-border"
+        className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-surface-muted text-sm font-semibold text-text-secondary transition-colors hover:bg-border"
       >
         {avatarUrl ? (
           <img

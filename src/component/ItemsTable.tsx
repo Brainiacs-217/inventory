@@ -7,6 +7,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { CreateFoodItemModal } from "@/component/CreateFoodItemModal";
 import { CreateItemModal } from "@/component/CreateItemModal";
 import { CreateSupplyItemModal } from "@/component/CreateSupplyItemModal";
+import { ItemsMobileList } from "@/component/ItemsMobileList";
 import { Modal } from "@/component/Modal";
 import { createItem, deleteItems } from "@/lib/items/actions";
 import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/lookups";
@@ -135,7 +136,10 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
   const [vendorFilter, setVendorFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    ids: string[];
+    prompt: string;
+  } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -233,40 +237,77 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
     setVendorFilter("");
   }
 
+  function requestDelete(ids: string[], prompt: string) {
+    if (!organizationId || ids.length === 0) return;
+    setDeleteError(null);
+    setPendingDelete({ ids, prompt });
+  }
+
   function handleDeleteClick() {
     if (!someSelected) return;
-    setDeleteError(null);
-    setDeleteConfirmOpen(true);
+    const prompt = allSelected
+      ? `Are you sure you want to delete all ${activeSection.toLowerCase()} items?`
+      : `Are you sure you want to delete ${selectedCount} selected ${selectedCount === 1 ? "item" : "items"}?`;
+    requestDelete(Array.from(selectedIds), prompt);
   }
 
   async function handleDeleteConfirm() {
-    if (!organizationId || !someSelected) return;
+    if (!organizationId || !pendingDelete) return;
 
     setDeleting(true);
     setDeleteError(null);
 
-    const result = await deleteItems(organizationId, Array.from(selectedIds));
+    const result = await deleteItems(organizationId, pendingDelete.ids);
     if ("error" in result) {
       setDeleteError(result.error);
       setDeleting(false);
       return;
     }
 
-    setSelectedIds(new Set());
+    const deletedIds = new Set(result.data.deletedIds);
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const id of deletedIds) next.delete(id);
+      return next;
+    });
     setDeleting(false);
-    setDeleteConfirmOpen(false);
+    setPendingDelete(null);
     router.refresh();
   }
 
   function handleDeleteCancel() {
     if (deleting) return;
-    setDeleteConfirmOpen(false);
+    setPendingDelete(null);
     setDeleteError(null);
   }
 
   return (
     <>
-      <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+      <ItemsMobileList
+        key={activeSection}
+        organizationId={organizationId}
+        activeSection={activeSection}
+        onSectionChange={handleSectionChange}
+        searchQuery={searchQuery}
+        onSearchQuery={setSearchQuery}
+        categoryFilter={categoryFilter}
+        onCategoryFilter={setCategoryFilter}
+        vendorFilter={vendorFilter}
+        onVendorFilter={setVendorFilter}
+        categoryOptions={categoryOptions}
+        vendorOptions={vendorOptions}
+        visibleItems={visibleItems}
+        sectionCount={sectionItems.length}
+        isFiltering={isFiltering}
+        selectedIds={selectedIds}
+        allSelected={allSelected}
+        onToggleItem={toggleItemSelection}
+        onToggleSelectAll={toggleSelectAll}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onRequestDelete={requestDelete}
+        onAdd={() => setCreateOpen(true)}
+      />
+      <div className="hidden h-full min-h-0 flex-1 flex-col overflow-hidden md:flex">
         <div className="mb-3 flex shrink-0 items-center gap-2 md:mb-4 md:gap-3">
           <div className="flex min-w-0 flex-1 rounded-lg border border-border/80 bg-surface p-1 shadow-sm md:inline-flex md:w-fit md:flex-none">
             {ITEM_CATEGORIES.map((section) => (
@@ -509,7 +550,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
       />
 
       <Modal
-        open={deleteConfirmOpen}
+        open={pendingDelete != null}
         onClose={handleDeleteCancel}
         title="Delete items"
         footer={
@@ -536,11 +577,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
           </div>
         }
       >
-        <p className="text-sm text-text-secondary">
-          {allSelected
-            ? `Are you sure you want to delete all ${activeSection.toLowerCase()} items?`
-            : `Are you sure you want to delete ${selectedCount} selected ${selectedCount === 1 ? "item" : "items"}?`}
-        </p>
+        <p className="text-sm text-text-secondary">{pendingDelete?.prompt}</p>
       </Modal>
     </>
   );

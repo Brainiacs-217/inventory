@@ -28,7 +28,7 @@ import type { RecipeSales } from "@/types/dashboard";
 import { useFollowCursorTooltip } from "@/hooks/useFollowCursorTooltip";
 
 const CHART_CARD_CLASS =
-  "flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
+  "flex w-full shrink-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
 
 const RECIPE_PROFIT_GRADIENT_ID = "fill-recipe-profit";
 
@@ -97,7 +97,7 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
   const { position, onMouseMove, onMouseLeave } = useFollowCursorTooltip();
 
   return (
-    <div className={`${CHART_CARD_CLASS} flex h-full min-h-0 flex-col`}>
+    <div className={CHART_CARD_CLASS}>
       <div className="flex shrink-0 items-center gap-3 border-b border-border/80 bg-surface px-5 py-3.5">
         <div className={CHART_ICON_BADGE_CLASS}>
           <BookOpen className="size-4 text-text-muted" strokeWidth={1.75} />
@@ -109,7 +109,7 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
           <p className="text-xs text-text-muted">Ranked by total profit</p>
         </div>
       </div>
-      <div className="min-h-[calc(14rem+1in)] flex-1 px-2 pb-5 pt-4 sm:px-4">
+      <div className="h-[calc(14rem+1in)] px-2 pb-5 pt-4 sm:px-4">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             {...CHART_ACCESSIBILITY}

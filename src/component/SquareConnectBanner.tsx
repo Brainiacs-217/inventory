@@ -7,7 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { connectSandboxSquare, disconnectSquare } from "@/lib/square/actions";
 
 const CARD_CLASS =
-  "w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
+  "w-full shrink-0 overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
 
 const CONNECT_BUTTON_CLASS =
   "inline-flex shrink-0 items-center rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50";
