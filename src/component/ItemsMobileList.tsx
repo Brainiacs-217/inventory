@@ -221,14 +221,14 @@ export function ItemsMobileList({
                       />
                     ) : null}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-text-primary">
+                      <span className="block truncate text-base font-medium text-text-primary">
                         {item.name}
                       </span>
-                      <span className="mt-0.5 block truncate text-xs text-text-muted">
+                      <span className="mt-1 block truncate text-[13px] font-normal leading-5 text-text-muted">
                         {rowMeta(item, categoryFilter.length > 0)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-sm font-medium text-text-primary tabular-nums">
+                    <span className="shrink-0 font-mono text-[13px] font-medium text-text-secondary tabular-nums">
                       ${item.cost.toFixed(2)}
                     </span>
                   </button>

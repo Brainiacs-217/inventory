@@ -15,6 +15,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Inventory",
   description: "BurgerBots inventory management",
+  applicationName: "Inventory",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Inventory",
+  },
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
@@ -23,6 +32,8 @@ export const viewport: Viewport = {
   minimumScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({
