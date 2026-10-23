@@ -108,7 +108,7 @@ export function ItemsMobileList({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden">
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-none">
-      <div className="sticky top-0 z-10 mb-6 flex flex-col gap-2 bg-background">
+      <div className="sticky top-0 z-10 mb-3 flex flex-col gap-2 bg-background">
         <div className="flex rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
           {ITEM_CATEGORIES.map((section) => (
             <button

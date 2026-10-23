@@ -14,6 +14,7 @@ type ModalProps = {
   footer?: ReactNode;
   size?: ModalSize;
   bodyClassName?: string;
+  mobileSheet?: boolean;
 };
 
 const sizeClassNames: Record<ModalSize, string> = {
@@ -31,9 +32,43 @@ export function Modal({
   footer,
   size = "md",
   bodyClassName,
+  mobileSheet = false,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!open || !mobileSheet) return;
+
+    const viewport = window.visualViewport;
+    const panel = panelRef.current;
+    const narrow = window.matchMedia("(max-width: 767px)");
+    if (!viewport || !panel) return;
+
+    function fitSheetToVisibleScreen() {
+      if (!viewport || !panel) return;
+      if (!narrow.matches) {
+        panel.style.height = "";
+        panel.style.top = "";
+        return;
+      }
+      panel.style.height = `${viewport.height}px`;
+      panel.style.top = `${viewport.offsetTop}px`;
+    }
+
+    fitSheetToVisibleScreen();
+    viewport.addEventListener("resize", fitSheetToVisibleScreen);
+    viewport.addEventListener("scroll", fitSheetToVisibleScreen);
+    narrow.addEventListener("change", fitSheetToVisibleScreen);
+
+    return () => {
+      viewport.removeEventListener("resize", fitSheetToVisibleScreen);
+      viewport.removeEventListener("scroll", fitSheetToVisibleScreen);
+      narrow.removeEventListener("change", fitSheetToVisibleScreen);
+      panel.style.height = "";
+      panel.style.top = "";
+    };
+  }, [open, mobileSheet]);
 
   useEffect(() => {
     if (!open) return;
@@ -67,7 +102,13 @@ export function Modal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className={`fixed inset-0 z-50 flex ${
+        mobileSheet
+          ? "items-stretch justify-center md:items-center md:p-4"
+          : "items-center justify-center p-4"
+      }`}
+    >
       <button
         type="button"
         aria-label="Close dialog"
@@ -80,10 +121,20 @@ export function Modal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
-        className={`relative flex max-h-[92vh] w-full ${sizeClassNames[size]} flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]`}
+        className={`flex w-full ${sizeClassNames[size]} flex-col overflow-hidden bg-surface ${
+          mobileSheet
+            ? "absolute inset-x-0 top-0 h-dvh max-h-none rounded-none border-0 shadow-none md:relative md:h-auto md:max-h-[92vh] md:rounded-xl md:border md:border-border/80 md:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]"
+            : "relative max-h-[92vh] rounded-xl border border-border/80 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]"
+        }`}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-border/80 bg-surface-muted/40 px-5 py-3.5">
+        <div
+          className={`flex shrink-0 items-start justify-between gap-4 border-b border-border/80 bg-surface-muted/40 ${
+            mobileSheet
+              ? "pr-[max(1rem,env(safe-area-inset-right))] pb-3.5 pl-[max(1rem,env(safe-area-inset-left))] pt-[calc(0.875rem+env(safe-area-inset-top))] md:px-5 md:py-3.5"
+              : "px-5 py-3.5"
+          }`}
+        >
           <div className="min-w-0">
             <h2
               id="modal-title"
@@ -99,20 +150,34 @@ export function Modal({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded-md p-1.5 text-text-muted transition-colors hover:bg-surface-muted hover:text-text-primary"
+            className={`shrink-0 rounded-md text-text-muted transition-colors hover:bg-surface-muted hover:text-text-primary ${
+              mobileSheet
+                ? "flex size-11 items-center justify-center md:size-auto md:p-1.5"
+                : "p-1.5"
+            }`}
           >
             <X className="size-4" />
           </button>
         </div>
 
         <div
-          className={`flex-1 bg-background/50 px-5 py-4 ${bodyClassName ?? "overflow-y-auto"}`}
+          className={`min-h-0 flex-1 bg-background/50 ${
+            mobileSheet
+              ? "pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))] md:px-5"
+              : "px-5"
+          } py-4 ${bodyClassName ?? "overflow-y-auto"}`}
         >
           {children}
         </div>
 
         {footer && (
-          <div className="border-t border-border/80 bg-surface-muted/30 px-5 py-3.5">
+          <div
+            className={`shrink-0 border-t border-border/80 bg-surface-muted/30 ${
+              mobileSheet
+                ? "pr-[max(1rem,env(safe-area-inset-right))] pb-[calc(0.875rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pt-3.5 md:px-5 md:py-3.5"
+                : "px-5 py-3.5"
+            }`}
+          >
             {footer}
           </div>
         )}

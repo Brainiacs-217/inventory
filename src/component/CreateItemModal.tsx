@@ -4,10 +4,6 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
-import {
-  RecipeFormSection,
-  recipeFieldGridClassName,
-} from "@/component/recipe/formShared";
 import { calculateItemCost, formatCostValue } from "@/lib/items/cost";
 import {
   BASE_UNITS,
@@ -40,7 +36,7 @@ type CreateItemModalProps = {
 type FormErrors = Partial<Record<keyof BeverageFormValues, string>>;
 
 const inputClassName =
-  "rounded-sm border border-border/80 bg-surface px-2.5 py-1.5 text-sm text-text-primary shadow-sm transition-[border-color,box-shadow] outline-none placeholder:text-text-muted/60 hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 w-full";
+  "w-full rounded-sm border border-border/80 bg-surface px-2.5 py-1.5 text-sm text-text-primary shadow-sm transition-[border-color,box-shadow] outline-none placeholder:text-text-muted/60 hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 max-md:min-h-11 max-md:text-base";
 const selectClassName = `${inputClassName} appearance-none pr-8`;
 const labelClassName =
   "text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted";
@@ -105,7 +101,50 @@ function SelectInput({ children }: { children: ReactNode }) {
   );
 }
 
+function BeverageSection({
+  step,
+  title,
+  description,
+  children,
+}: {
+  step: string;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-3 md:h-full md:gap-0 md:overflow-hidden md:rounded-sm md:border md:border-border/80 md:bg-surface">
+      <header className="md:border-b md:border-border/80 md:bg-surface-muted/25 md:px-3 md:py-2">
+        <h3 className="text-[10px] font-medium uppercase tracking-[0.14em] text-text-muted md:hidden">
+          {title}
+        </h3>
+        <div className="hidden items-start gap-2.5 md:flex">
+          <span className="pt-0.5 text-xs font-bold tabular-nums tracking-wide text-text-primary">
+            {step}
+          </span>
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <span
+              className="mt-1 h-3 w-0.5 shrink-0 rounded-full bg-accent"
+              aria-hidden
+            />
+            <div className="min-w-0">
+              <h3 className="text-sm font-medium tracking-tight text-text-primary">
+                {title}
+              </h3>
+              <p className="mt-0.5 line-clamp-1 text-[11px] leading-snug text-text-muted">
+                {description}
+              </p>
+            </div>
+          </div>
+        </div>
+      </header>
+      <div className="flex flex-col md:min-h-0 md:flex-1 md:p-3">{children}</div>
+    </section>
+  );
+}
+
 function Field({
+  id,
   label,
   required,
   error,
@@ -113,6 +152,7 @@ function Field({
   children,
   className,
 }: {
+  id?: string;
   label: string;
   required?: boolean;
   error?: string;
@@ -121,7 +161,10 @@ function Field({
   className?: string;
 }) {
   return (
-    <div className={`flex min-w-0 flex-col gap-1 ${className ?? ""}`}>
+    <div
+      id={id}
+      className={`flex min-w-0 scroll-my-4 flex-col gap-1 ${className ?? ""}`}
+    >
       <label className={labelClassName}>
         {label}
         {required ? <span className="text-error"> *</span> : null}
@@ -206,6 +249,24 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
     const validationErrors = validateForm(values);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      const order = [
+        "name",
+        "subCategory",
+        "caseSize",
+        "unitSize",
+        "baseUnit",
+        "vendor",
+        "price",
+      ] as const;
+      const first = order.find((key) => validationErrors[key]);
+      const scrollId = first === "baseUnit" ? "unitSize" : first;
+      if (scrollId) {
+        requestAnimationFrame(() => {
+          document
+            .getElementById(`beverage-${scrollId}`)
+            ?.scrollIntoView({ block: "center" });
+        });
+      }
       return;
     }
 
@@ -230,16 +291,17 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
       onClose={onClose}
       title="Create beverage"
       size="xl"
-      bodyClassName="overflow-hidden py-3"
+      mobileSheet
+      bodyClassName="overflow-y-auto overscroll-contain py-4 md:overflow-hidden md:py-3"
       footer={
         <div className="flex flex-col gap-2">
           {submitError ? <p className="text-xs text-error">{submitError}</p> : null}
-          <div className="flex justify-end gap-2.5">
+          <div className="flex gap-2.5 md:justify-end">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
+              className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50 max-md:min-h-11 max-md:flex-1 max-md:text-base"
             >
               Cancel
             </button>
@@ -247,7 +309,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
               type="submit"
               form="create-beverage-form"
               disabled={saving}
-              className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+              className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50 max-md:min-h-11 max-md:flex-1 max-md:text-base"
             >
               {saving ? "Saving…" : "Save item"}
             </button>
@@ -258,26 +320,38 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
       <form
         id="create-beverage-form"
         onSubmit={handleSubmit}
-        className="grid grid-cols-2 gap-3"
+        onFocus={(event) => {
+          if (!window.matchMedia("(max-width: 767px)").matches) return;
+          const target = event.target;
+          if (!(target instanceof HTMLElement)) return;
+          window.setTimeout(() => {
+            target.scrollIntoView({ block: "center" });
+          }, 300);
+        }}
+        className="flex flex-col gap-6 pb-4 md:grid md:h-auto md:grid-cols-2 md:gap-3 md:pb-0"
       >
-        <RecipeFormSection
+        <BeverageSection
           step="01"
           title="Identity"
           description="What is this beverage called?"
         >
-          <div className={recipeFieldGridClassName}>
-            <Field label="Name" required error={errors.name}>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-x-3 md:gap-y-2.5">
+            <Field id="beverage-name" label="Name" required error={errors.name}>
               <input
                 type="text"
                 placeholder="e.g. Bud Light 12oz"
                 value={values.name}
                 onChange={(event) => updateField("name", event.target.value)}
                 className={inputClassName}
-                autoFocus
               />
             </Field>
 
-            <Field label="Sub category" required error={errors.subCategory}>
+            <Field
+              id="beverage-subCategory"
+              label="Sub category"
+              required
+              error={errors.subCategory}
+            >
               <SelectInput>
                 <select
                   value={values.subCategory}
@@ -296,20 +370,25 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
               </SelectInput>
             </Field>
           </div>
-        </RecipeFormSection>
+        </BeverageSection>
 
-        <RecipeFormSection
+        <BeverageSection
           step="02"
           title="Packaging"
           description="How each case and unit is measured."
         >
-          <div className={recipeFieldGridClassName}>
-            <Field label="Case size" required error={errors.caseSize}>
+          <div className="grid grid-cols-[minmax(0,5.5rem)_minmax(0,1fr)] gap-3 md:grid-cols-2 md:gap-x-3 md:gap-y-2.5">
+            <Field
+              id="beverage-caseSize"
+              label="Case size"
+              required
+              error={errors.caseSize}
+            >
               <input
                 type="number"
                 min="0"
                 step="any"
-                placeholder="e.g. 24"
+                placeholder="24"
                 value={values.caseSize}
                 onChange={(event) => updateField("caseSize", event.target.value)}
                 className={inputClassName}
@@ -317,6 +396,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
             </Field>
 
             <Field
+              id="beverage-unitSize"
               label="Unit size"
               required
               error={errors.unitSize ?? errors.baseUnit}
@@ -326,7 +406,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                   type="number"
                   min="0"
                   step="any"
-                  placeholder="e.g. 12"
+                  placeholder="12"
                   value={values.unitSize}
                   onChange={(event) => updateField("unitSize", event.target.value)}
                   className={`${inputClassName} min-w-0 flex-1`}
@@ -338,7 +418,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                       updateField("baseUnit", event.target.value)
                     }
                     aria-label="Base unit"
-                    className={`${selectClassName} w-24 shrink-0`}
+                    className={`${selectClassName} w-[4.5rem] shrink-0 md:w-24`}
                   >
                     <option value="">Unit</option>
                     {BASE_UNITS.map((unit) => (
@@ -351,15 +431,21 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
               </div>
             </Field>
           </div>
-        </RecipeFormSection>
+        </BeverageSection>
 
-        <RecipeFormSection
+        <BeverageSection
           step="03"
           title="Purchasing"
           description="Vendor, price, and optional SKU."
         >
-          <div className={recipeFieldGridClassName}>
-            <Field label="Vendor" required error={errors.vendor}>
+          <div className="grid grid-cols-2 gap-3 md:gap-x-3 md:gap-y-2.5">
+            <Field
+              id="beverage-vendor"
+              label="Vendor"
+              required
+              error={errors.vendor}
+              className="col-span-2 md:col-span-1"
+            >
               <SelectInput>
                 <select
                   value={values.vendor}
@@ -376,7 +462,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
               </SelectInput>
             </Field>
 
-            <Field label="Price" required error={errors.price}>
+            <Field id="beverage-price" label="Price" required error={errors.price}>
               <div className="relative">
                 <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-text-muted">
                   $
@@ -392,7 +478,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
               </div>
             </Field>
 
-            <Field label="SKU" error={errors.sku} className="col-span-2">
+            <Field label="SKU" error={errors.sku} className="md:col-span-2">
               <input
                 type="text"
                 placeholder="Optional"
@@ -402,22 +488,23 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
               />
             </Field>
           </div>
-        </RecipeFormSection>
+        </BeverageSection>
 
-        <RecipeFormSection
+        <BeverageSection
           step="04"
           title="Notes"
           description="Optional notes about this beverage."
         >
-          <Field label="Comments" className="h-full min-h-0">
+          <Field label="Comments" className="md:h-full md:min-h-0">
             <textarea
+              rows={3}
               placeholder="Optional"
               value={values.comments}
               onChange={(event) => updateField("comments", event.target.value)}
-              className={`${inputClassName} min-h-0 flex-1 resize-none`}
+              className={`${inputClassName} h-24 resize-none md:h-auto md:min-h-0 md:flex-1`}
             />
           </Field>
-        </RecipeFormSection>
+        </BeverageSection>
       </form>
     </Modal>
   );
