@@ -1,6 +1,6 @@
-# Inventory
+# Carrot
 
-BurgerBots inventory management app built with Next.js, Tailwind CSS, and Supabase.
+Carrot inventory management app built with Next.js, Tailwind CSS, and Supabase.
 
 ## Setup
 

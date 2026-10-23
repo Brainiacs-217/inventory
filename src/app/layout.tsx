@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Inventory",
-  description: "BurgerBots inventory management",
-  applicationName: "Inventory",
+  title: "Carrot",
+  description: "Carrot inventory management",
+  applicationName: "Carrot",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Inventory",
+    title: "Carrot",
   },
   other: {
     "apple-mobile-web-app-capable": "yes",

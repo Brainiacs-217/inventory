@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Inventory",
-    short_name: "Inventory",
-    description: "BurgerBots inventory management",
+    name: "Carrot",
+    short_name: "Carrot",
+    description: "Carrot inventory management",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -12,12 +12,12 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#ffffff",
     icons: [
       {
-        src: "/pwa-icon/192",
+        src: "/icons/icon-192.png",
         sizes: "192x192",
         type: "image/png",
       },
       {
-        src: "/pwa-icon/512",
+        src: "/icons/icon-512.png",
         sizes: "512x512",
         type: "image/png",
       },
