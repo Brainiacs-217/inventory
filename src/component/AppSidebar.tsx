@@ -22,9 +22,13 @@ const linkClass = (active: boolean, collapsed: boolean) =>
 
 type AppSidebarProps = {
   mobileOpen?: boolean;
+  onMobileClose?: () => void;
 };
 
-export function AppSidebar({ mobileOpen = false }: AppSidebarProps) {
+export function AppSidebar({
+  mobileOpen = false,
+  onMobileClose,
+}: AppSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const iconOnly = collapsed && !mobileOpen;
@@ -76,6 +80,19 @@ export function AppSidebar({ mobileOpen = false }: AppSidebarProps) {
           );
         })}
       </nav>
+
+      {mobileOpen ? (
+        <div className="app-safe-bottom mt-auto border-t border-sidebar-border px-3 py-4 md:hidden">
+          <button
+            type="button"
+            onClick={onMobileClose}
+            aria-label="Close navigation"
+            className="flex w-full items-center justify-end rounded-md px-3 py-2 text-sidebar-muted transition-colors hover:bg-sidebar-active/50 hover:text-sidebar-foreground"
+          >
+            <ChevronLeft aria-hidden className="size-5 shrink-0" />
+          </button>
+        </div>
+      ) : null}
 
       <div
         className={`mt-auto hidden border-t border-sidebar-border py-4 md:block ${

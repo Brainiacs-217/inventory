@@ -33,7 +33,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [mobileNavOpen]);
 
   return (
-    <div className="flex h-full overflow-hidden bg-white">
+    <div className="flex min-h-0 w-full flex-1 overflow-hidden bg-white">
       {mobileNavOpen ? (
         <button
           type="button"
@@ -42,7 +42,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           onClick={() => setMobileNavOpen(false)}
         />
       ) : null}
-      <AppSidebar mobileOpen={mobileNavOpen} />
+      <AppSidebar
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <AppHeader
           mobileNavOpen={mobileNavOpen}

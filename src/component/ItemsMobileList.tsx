@@ -107,7 +107,8 @@ export function ItemsMobileList({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden">
-      <div className="mb-6 flex shrink-0 flex-col gap-2">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-none">
+      <div className="sticky top-0 z-10 mb-6 flex flex-col gap-2 bg-background">
         <div className="flex rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
           {ITEM_CATEGORIES.map((section) => (
             <button
@@ -184,8 +185,6 @@ export function ItemsMobileList({
           </button>
         ) : null}
       </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-none">
         {visibleItems.length === 0 ? (
           <p className="px-2 py-10 text-center text-sm text-text-muted">
             {organizationId
@@ -431,7 +430,7 @@ function MobileSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="mobile-sheet-title"
-        className="relative flex max-h-[85vh] w-full flex-col rounded-t-2xl border border-border/80 bg-surface"
+        className="app-safe-bottom relative flex max-h-[85dvh] w-full flex-col rounded-t-2xl border border-border/80 bg-surface"
       >
         <div className="flex items-start justify-between gap-3 border-b border-border/80 px-4 py-3.5">
           <h2

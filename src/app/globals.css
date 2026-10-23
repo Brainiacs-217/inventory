@@ -14,13 +14,19 @@
     font-family: var(--font-geist-sans), system-ui, sans-serif;
   }
 
-  /* Home-screen launch only. In the browser these insets stay unused. */
+  /* Home-screen launch only. In the browser these insets stay unused.
+     The bottom minimum covers phones that overlay a home indicator but
+     report a zero safe-area inset. */
   @media (display-mode: standalone), (display-mode: fullscreen) {
     body {
       padding-top: env(safe-area-inset-top);
       padding-right: env(safe-area-inset-right);
-      padding-bottom: env(safe-area-inset-bottom);
+      padding-bottom: max(env(safe-area-inset-bottom), 2.75rem);
       padding-left: env(safe-area-inset-left);
+    }
+
+    .app-safe-bottom {
+      padding-bottom: max(env(safe-area-inset-bottom), 2.75rem);
     }
   }
 

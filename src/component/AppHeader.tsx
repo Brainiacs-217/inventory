@@ -27,9 +27,9 @@ export function AppHeader({
             onClick={onMobileNavOpen}
             aria-label="Open navigation"
             aria-expanded={mobileNavOpen}
-            className="flex size-11 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary md:hidden"
+            className="flex size-9 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary md:hidden"
           >
-            <Menu className="size-8" strokeWidth={2} />
+            <Menu className="size-6" strokeWidth={2} />
           </button>
           <h2 className="hidden h-10 items-center text-sm font-semibold text-text-primary md:flex">
             {title}
