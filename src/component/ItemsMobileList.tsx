@@ -107,7 +107,7 @@ export function ItemsMobileList({
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden">
-      <div className="flex shrink-0 flex-col gap-2">
+      <div className="mb-6 flex shrink-0 flex-col gap-2">
         <div className="flex rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
           {ITEM_CATEGORIES.map((section) => (
             <button
@@ -156,7 +156,7 @@ export function ItemsMobileList({
           </button>
         </div>
 
-        <div className="scrollbar-hidden flex gap-1.5 overflow-x-auto overflow-y-hidden">
+        <div className="scrollbar-hidden flex gap-2 overflow-x-auto overflow-y-hidden">
           <Chip
             active={categoryFilter === ""}
             onClick={() => onCategoryFilter("")}
@@ -239,7 +239,7 @@ export function ItemsMobileList({
         )}
       </div>
 
-      <div className="shrink-0 pt-3">
+      <div className="shrink-0 pt-6">
         {selecting ? (
           <button
             type="button"
