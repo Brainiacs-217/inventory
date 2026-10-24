@@ -373,71 +373,67 @@ export function CreateOrganizationModal({
           />
         </Field>
 
-        <div className="flex flex-col gap-1.5">
-          <span className={labelClassName}>Square</span>
-          <div className="flex flex-wrap items-center gap-3 rounded-sm border border-border/80 bg-surface px-3 py-2">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className={labelClassName}>Square</span>
             <div
-              className={`flex size-9 shrink-0 items-center justify-center rounded-sm border border-border/80 ${
-                squareConnected ? "bg-success/10 text-success" : "bg-surface-muted text-text-muted"
-              }`}
+              title={squareDetail}
+              className="flex h-10 items-center gap-2 rounded-sm border border-border/80 bg-surface px-2.5"
             >
-              {squareConnected ? (
-                <Check aria-hidden className="size-4" strokeWidth={2} />
-              ) : (
-                <Plug aria-hidden className="size-4" strokeWidth={1.75} />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium tracking-tight text-text-primary">
+              <div
+                className={`flex size-6 shrink-0 items-center justify-center rounded-sm border border-border/80 ${
+                  squareConnected ? "bg-success/10 text-success" : "bg-surface-muted text-text-muted"
+                }`}
+              >
+                {squareConnected ? (
+                  <Check aria-hidden className="size-3.5" strokeWidth={2} />
+                ) : (
+                  <Plug aria-hidden className="size-3.5" strokeWidth={1.75} />
+                )}
+              </div>
+              <p className="min-w-0 flex-1 truncate text-sm font-medium tracking-tight text-text-primary">
                 {squareStatus}
               </p>
-              <p className="text-xs leading-relaxed text-text-muted">{squareDetail}</p>
+              {squareConnected ? (
+                <span className="shrink-0 text-xs font-medium text-success">Linked</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleConnectSquare}
+                  disabled={busy || !squareOptions || !connectAvailable}
+                  className="inline-flex shrink-0 items-center rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  {connecting ? "Connecting…" : "Connect"}
+                </button>
+              )}
             </div>
-            {squareConnected ? (
-              <span className="shrink-0 text-xs font-medium text-success">Linked</span>
-            ) : (
+            {squareError && <p className="text-xs text-error">{squareError}</p>}
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-1.5">
+            <span className={labelClassName}>Logo</span>
+            <div
+              title="Square image recommended. PNG, JPG, WebP, or SVG. Max 2 MB."
+              className="flex h-10 items-center gap-2 rounded-sm border border-border/80 bg-surface px-2.5"
+            >
               <button
                 type="button"
-                onClick={handleConnectSquare}
-                disabled={busy || !squareOptions || !connectAvailable}
-                className="inline-flex shrink-0 items-center rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label={values.logoSrc ? "Change logo" : "Upload logo"}
+                disabled={busy}
+                className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border/80 bg-surface-muted/40 transition-colors hover:bg-surface-muted/70 disabled:opacity-50"
               >
-                {connecting ? "Connecting…" : "Connect"}
+                {values.logoSrc ? (
+                  <img src={values.logoSrc} alt="" className="size-5 object-contain" />
+                ) : (
+                  <span className="text-[11px] font-medium tracking-tight text-text-muted/70">
+                    {logoInitial}
+                  </span>
+                )}
               </button>
-            )}
-          </div>
-          {squareError && <p className="text-xs text-error">{squareError}</p>}
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <span className={labelClassName}>Logo</span>
-          <div className="flex flex-wrap items-center gap-3 rounded-sm border border-border/80 bg-surface px-3 py-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label={values.logoSrc ? "Change logo" : "Upload logo"}
-              disabled={busy}
-              className="group relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border/80 bg-surface-muted/40 transition-colors hover:bg-surface-muted/70 disabled:opacity-50"
-            >
-              {values.logoSrc ? (
-                <img src={values.logoSrc} alt="" className="size-8 object-contain" />
-              ) : (
-                <span className="text-sm font-medium tracking-tight text-text-muted/70">
-                  {logoInitial}
-                </span>
-              )}
-            </button>
-
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium tracking-tight text-text-primary">
-                {values.logoSrc ? "Logo selected" : "Optional mark"}
+              <p className="min-w-0 flex-1 truncate text-sm font-medium tracking-tight text-text-primary">
+                {values.logoSrc ? "Logo selected" : "Optional"}
               </p>
-              <p className="text-xs leading-relaxed text-text-muted">
-                Square image recommended. PNG, JPG, WebP, or SVG · 2 MB.
-              </p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -450,7 +446,7 @@ export function CreateOrganizationModal({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={busy}
-                className="inline-flex items-center gap-1.5 rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
               >
                 <ImagePlus aria-hidden className="size-3.5" strokeWidth={1.75} />
                 {values.logoSrc ? "Replace" : "Choose file"}
@@ -461,14 +457,14 @@ export function CreateOrganizationModal({
                   onClick={handleRemoveLogo}
                   disabled={busy}
                   aria-label="Remove logo"
-                  className="inline-flex size-7 items-center justify-center rounded-sm border border-border/80 text-text-muted transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
+                  className="inline-flex size-7 shrink-0 items-center justify-center rounded-sm border border-border/80 text-text-muted transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
                 >
                   <X aria-hidden className="size-3.5" />
                 </button>
               )}
             </div>
+            {errors.logoSrc && <p className="text-xs text-error">{errors.logoSrc}</p>}
           </div>
-          {errors.logoSrc && <p className="text-xs text-error">{errors.logoSrc}</p>}
         </div>
       </form>
     </Modal>

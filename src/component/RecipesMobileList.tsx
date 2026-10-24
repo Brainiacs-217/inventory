@@ -3,6 +3,8 @@
 import { Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { formatCurrency } from "@/lib/formatCurrency";
+import { placeholderRecipeCog } from "@/lib/placeholderPrice";
 import type { Recipe } from "@/types/recipe";
 
 const SEARCH_INPUT_CLASS =
@@ -24,14 +26,8 @@ type RecipesMobileListProps = {
   onAdd: () => void;
 };
 
-function formatCreatedAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString();
-}
-
-function lineLabel(count: number): string {
-  return count === 1 ? "1 line" : `${count} lines`;
+function itemLabel(count: number): string {
+  return count === 1 ? "1 item" : `${count} items`;
 }
 
 export function RecipesMobileList({
@@ -127,11 +123,11 @@ export function RecipesMobileList({
                         {recipe.name}
                       </span>
                       <span className="mt-0.5 block truncate text-[13px] font-normal leading-5 text-text-muted">
-                        {lineLabel(recipe.ingredientCount)}
+                        {itemLabel(recipe.ingredientCount)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[13px] font-medium text-text-secondary tabular-nums">
-                      {formatCreatedAt(recipe.createdAt)}
+                    <span className="shrink-0 text-[13px] font-medium text-text-primary tabular-nums">
+                      {formatCurrency(placeholderRecipeCog(recipe.id))}
                     </span>
                   </button>
                 </li>
@@ -198,8 +194,11 @@ export function RecipesMobileList({
       >
         {openRecipe ? (
           <dl className="flex flex-col">
-            <DetailRow label="Lines" value={lineLabel(openRecipe.ingredientCount)} />
-            <DetailRow label="Created" value={formatCreatedAt(openRecipe.createdAt)} />
+            <DetailRow label="Items" value={itemLabel(openRecipe.ingredientCount)} />
+            <DetailRow
+              label="COG"
+              value={formatCurrency(placeholderRecipeCog(openRecipe.id))}
+            />
           </dl>
         ) : null}
       </MobileSheet>

@@ -7,6 +7,8 @@ import { useMemo, useState } from "react";
 import { CreateRecipeModal } from "@/component/CreateRecipeModal";
 import { Modal } from "@/component/Modal";
 import { RecipesMobileList } from "@/component/RecipesMobileList";
+import { formatCurrency } from "@/lib/formatCurrency";
+import { placeholderRecipeCog } from "@/lib/placeholderPrice";
 import { createRecipe, deleteRecipes } from "@/lib/recipes/actions";
 import type { InventoryItem } from "@/types/item";
 import type {
@@ -31,12 +33,6 @@ function formatRecipeCount(
     return totalCount === 1 ? "1 recipe" : `${totalCount} recipes`;
   }
   return `${visibleCount} of ${totalCount} ${totalCount === 1 ? "recipe" : "recipes"}`;
-}
-
-function formatCreatedAt(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
-  return date.toLocaleDateString();
 }
 
 function recipeMatchesQuery(recipe: Recipe, query: string): boolean {
@@ -272,8 +268,8 @@ export function RecipesTable({
                     />
                   </th>
                   <th className="px-3 py-3">Name</th>
-                  <th className="px-3 py-3">Lines</th>
-                  <th className="px-3 py-3">Created</th>
+                  <th className="px-3 py-3">Items</th>
+                  <th className="px-3 py-3">COG</th>
                 </tr>
               </thead>
             </table>
@@ -325,8 +321,8 @@ export function RecipesTable({
                       <span className="text-text-secondary">{recipe.ingredientCount}</span>
                     </td>
                     <td className="px-3 py-3 align-middle">
-                      <span className="tabular-nums text-text-secondary">
-                        {formatCreatedAt(recipe.createdAt)}
+                      <span className="tabular-nums font-medium text-text-primary">
+                        {formatCurrency(placeholderRecipeCog(recipe.id))}
                       </span>
                     </td>
                   </tr>

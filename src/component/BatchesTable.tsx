@@ -8,6 +8,8 @@ import { BatchesMobileList } from "@/component/BatchesMobileList";
 import { CreateBatchModal } from "@/component/CreateBatchModal";
 import { Modal } from "@/component/Modal";
 import { createBatch, deleteBatches } from "@/lib/batches/actions";
+import { formatCurrency } from "@/lib/formatCurrency";
+import { placeholderBatchPrice } from "@/lib/placeholderPrice";
 import { formatBatchYield, type Batch, type CreateBatchFormValues } from "@/types/batch";
 import type { InventoryItem } from "@/types/item";
 import type { UnitOption } from "@/types/recipe";
@@ -245,10 +247,11 @@ export function BatchesTable({
             <table className={TABLE_CLASS}>
               <colgroup>
                 <col className="w-11" />
-                <col className="w-[40%]" />
-                <col className="w-[18%]" />
+                <col className="w-[34%]" />
                 <col className="w-[16%]" />
-                <col className="w-[18%]" />
+                <col className="w-[12%]" />
+                <col className="w-[16%]" />
+                <col className="w-[16%]" />
               </colgroup>
               <thead>
                 <tr className="border-b border-border/80 bg-surface-muted text-left text-[11px] font-semibold uppercase tracking-wider text-text-muted">
@@ -268,7 +271,8 @@ export function BatchesTable({
                   </th>
                   <th className="px-3 py-3">Name</th>
                   <th className="px-3 py-3">Yield</th>
-                  <th className="px-3 py-3">Lines</th>
+                  <th className="px-3 py-3">Items</th>
+                  <th className="px-3 py-3">Price</th>
                   <th className="px-3 py-3">Created</th>
                 </tr>
               </thead>
@@ -279,15 +283,16 @@ export function BatchesTable({
             <table className={TABLE_CLASS}>
               <colgroup>
                 <col className="w-11" />
-                <col className="w-[40%]" />
-                <col className="w-[18%]" />
+                <col className="w-[34%]" />
                 <col className="w-[16%]" />
-                <col className="w-[18%]" />
+                <col className="w-[12%]" />
+                <col className="w-[16%]" />
+                <col className="w-[16%]" />
               </colgroup>
               <tbody className="divide-y divide-border/60">
                 {visibleBatches.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-5 py-10 text-center text-sm text-text-muted">
+                    <td colSpan={6} className="px-5 py-10 text-center text-sm text-text-muted">
                       {organizationId
                         ? isFiltering && batches.length > 0
                           ? "No batches match your search."
@@ -325,6 +330,11 @@ export function BatchesTable({
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <span className="text-text-secondary">{batch.ingredientCount}</span>
+                    </td>
+                    <td className="px-3 py-3 align-middle">
+                      <span className="tabular-nums font-medium text-text-primary">
+                        {formatCurrency(placeholderBatchPrice(batch.id))}
+                      </span>
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <span className="tabular-nums text-text-secondary">

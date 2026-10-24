@@ -3,6 +3,8 @@
 import { Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { formatCurrency } from "@/lib/formatCurrency";
+import { placeholderBatchPrice } from "@/lib/placeholderPrice";
 import { formatBatchYield, type Batch } from "@/types/batch";
 
 const SEARCH_INPUT_CLASS =
@@ -30,8 +32,8 @@ function formatCreatedAt(value: string): string {
   return date.toLocaleDateString();
 }
 
-function lineLabel(count: number): string {
-  return count === 1 ? "1 line" : `${count} lines`;
+function itemLabel(count: number): string {
+  return count === 1 ? "1 item" : `${count} items`;
 }
 
 export function BatchesMobileList({
@@ -127,11 +129,13 @@ export function BatchesMobileList({
                         {batch.name}
                       </span>
                       <span className="mt-0.5 block truncate text-[13px] font-normal leading-5 text-text-muted">
-                        {lineLabel(batch.ingredientCount)}
+                        {itemLabel(batch.ingredientCount)}
+                        {" · "}
+                        {formatBatchYield(batch.yieldQuantity, batch.yieldUnitSymbol)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[13px] font-medium text-text-secondary tabular-nums">
-                      {formatBatchYield(batch.yieldQuantity, batch.yieldUnitSymbol)}
+                    <span className="shrink-0 text-[13px] font-medium text-text-primary tabular-nums">
+                      {formatCurrency(placeholderBatchPrice(batch.id))}
                     </span>
                   </button>
                 </li>
@@ -202,7 +206,11 @@ export function BatchesMobileList({
               label="Yield"
               value={formatBatchYield(openBatch.yieldQuantity, openBatch.yieldUnitSymbol)}
             />
-            <DetailRow label="Lines" value={lineLabel(openBatch.ingredientCount)} />
+            <DetailRow label="Items" value={itemLabel(openBatch.ingredientCount)} />
+            <DetailRow
+              label="Price"
+              value={formatCurrency(placeholderBatchPrice(openBatch.id))}
+            />
             <DetailRow label="Created" value={formatCreatedAt(openBatch.createdAt)} />
           </dl>
         ) : null}
