@@ -28,6 +28,7 @@ type BatchesMobileListProps = {
   onClearSelection: () => void;
   onRequestDelete: (ids: string[], prompt: string) => void;
   onAdd: () => void;
+  onEdit: (batch: Batch) => void;
 };
 
 function formatCreatedAt(value: string): string {
@@ -57,6 +58,7 @@ export function BatchesMobileList({
   onClearSelection,
   onRequestDelete,
   onAdd,
+  onEdit,
 }: BatchesMobileListProps) {
   const [selecting, setSelecting] = useState(false);
   const [openBatch, setOpenBatch] = useState<Batch | null>(null);
@@ -220,6 +222,23 @@ export function BatchesMobileList({
         open={openBatch != null}
         title={openBatch?.name ?? "Batch"}
         onClose={() => setOpenBatch(null)}
+        footer={
+          openBatch ? (
+            <button
+              type="button"
+              disabled={!organizationId}
+              onClick={() => {
+                if (!openBatch) return;
+                const batch = openBatch;
+                setOpenBatch(null);
+                onEdit(batch);
+              }}
+              className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:opacity-50"
+            >
+              Edit
+            </button>
+          ) : null
+        }
       >
         {openBatch ? (
           <dl className="flex flex-col">
@@ -334,11 +353,13 @@ function MobileSheet({
   title,
   onClose,
   children,
+  footer,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
+  footer?: ReactNode;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -384,6 +405,9 @@ function MobileSheet({
           </button>
         </div>
         <div className="overflow-y-auto px-4 py-3">{children}</div>
+        {footer ? (
+          <div className="border-t border-border/80 px-4 py-3">{footer}</div>
+        ) : null}
       </div>
     </div>
   );

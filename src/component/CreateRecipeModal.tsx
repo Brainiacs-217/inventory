@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { IngredientSearch } from "@/component/recipe/IngredientSearch";
 import { RecipeIdentityForm } from "@/component/recipe/RecipeIdentityForm";
@@ -23,6 +23,8 @@ type CreateRecipeModalProps = {
   catalogItems: InventoryItem[];
   batches: BatchOption[];
   units: UnitOption[];
+  mode?: "create" | "edit";
+  initialValues?: CreateRecipeFormValues | null;
 };
 
 type FormErrors = Partial<Record<"name" | "ingredients", string>>;
@@ -60,6 +62,16 @@ function validateForm(values: CreateRecipeFormValues): FormErrors {
   return errors;
 }
 
+function seedRecipeValues(
+  initialValues: CreateRecipeFormValues | null,
+): CreateRecipeFormValues {
+  if (!initialValues) return createEmptyRecipeFormValues();
+  return {
+    ...initialValues,
+    ingredients: initialValues.ingredients.map((ingredient) => ({ ...ingredient })),
+  };
+}
+
 export function CreateRecipeModal({
   open,
   onClose,
@@ -67,6 +79,8 @@ export function CreateRecipeModal({
   catalogItems,
   batches,
   units,
+  mode = "create",
+  initialValues = null,
 }: CreateRecipeModalProps) {
   const [values, setValues] = useState<CreateRecipeFormValues>(
     createEmptyRecipeFormValues(),
@@ -74,10 +88,12 @@ export function CreateRecipeModal({
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const initialValuesRef = useRef(initialValues);
+  initialValuesRef.current = initialValues;
 
   useEffect(() => {
     if (!open) return;
-    setValues(createEmptyRecipeFormValues());
+    setValues(seedRecipeValues(initialValuesRef.current));
     setErrors({});
     setSaving(false);
     setSubmitError(null);
@@ -172,7 +188,7 @@ export function CreateRecipeModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Create recipe"
+      title={mode === "edit" ? "Edit recipe" : "Create recipe"}
       footer={footer}
       size="xl"
       mobileSheet

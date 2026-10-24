@@ -15,6 +15,7 @@ const ITEM_CATALOG_SELECT = `
     )
   ),
   item_packages (
+    id,
     sku,
     purchase_price,
     units_per_package,

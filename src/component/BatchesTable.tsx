@@ -8,10 +8,14 @@ import { BatchesMobileList } from "@/component/BatchesMobileList";
 import { CreateBatchModal } from "@/component/CreateBatchModal";
 import { ListFilterButton } from "@/component/ListFilterButton";
 import { Modal } from "@/component/Modal";
-import { createBatch, deleteBatches } from "@/lib/batches/actions";
+import { createBatch, deleteBatches, updateBatch } from "@/lib/batches/actions";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { placeholderBatchPrice } from "@/lib/placeholderPrice";
-import { formatBatchYield, type Batch, type CreateBatchFormValues } from "@/types/batch";
+import {
+  formatBatchYield,
+  type Batch,
+  type CreateBatchFormValues,
+} from "@/types/batch";
 import type { InventoryItem } from "@/types/item";
 import type { UnitOption } from "@/types/recipe";
 
@@ -30,6 +34,11 @@ function formatBatchCount(
     return totalCount === 1 ? "1 batch" : `${totalCount} batches`;
   }
   return `${visibleCount} of ${totalCount} ${totalCount === 1 ? "batch" : "batches"}`;
+}
+
+function formatQuantity(value: number): string {
+  if (!Number.isFinite(value)) return "";
+  return String(parseFloat(value.toFixed(4)));
 }
 
 function formatCreatedAt(value: string): string {
@@ -63,6 +72,7 @@ export function BatchesTable({
   const [unitFilter, setUnitFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     ids: string[];
     prompt: string;
@@ -100,7 +110,9 @@ export function BatchesTable({
       throw new Error("Select an organization before adding batches.");
     }
 
-    const result = await createBatch(organizationId, values);
+    const result = editingBatch
+      ? await updateBatch(organizationId, editingBatch.id, values)
+      : await createBatch(organizationId, values);
     if ("error" in result) {
       throw new Error(result.error);
     }
@@ -199,7 +211,14 @@ export function BatchesTable({
         onToggleSelectAll={toggleSelectAll}
         onClearSelection={() => setSelectedIds(new Set())}
         onRequestDelete={requestDelete}
-        onAdd={() => setCreateOpen(true)}
+        onAdd={() => {
+          setEditingBatch(null);
+          setCreateOpen(true);
+        }}
+        onEdit={(batch) => {
+          setCreateOpen(false);
+          setEditingBatch(batch);
+        }}
       />
 
       <div className="hidden h-full min-h-0 flex-1 flex-col overflow-hidden md:flex">
@@ -261,7 +280,10 @@ export function BatchesTable({
               </button>
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={() => {
+                  setEditingBatch(null);
+                  setCreateOpen(true);
+                }}
                 disabled={!organizationId}
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -378,8 +400,22 @@ export function BatchesTable({
       </div>
 
       <CreateBatchModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        open={createOpen || editingBatch != null}
+        mode={editingBatch ? "edit" : "create"}
+        initialValues={
+          editingBatch
+            ? {
+                name: editingBatch.name,
+                yieldQuantity: formatQuantity(editingBatch.yieldQuantity),
+                yieldUnitId: editingBatch.yieldUnitId,
+                ingredients: editingBatch.ingredients,
+              }
+            : null
+        }
+        onClose={() => {
+          setCreateOpen(false);
+          setEditingBatch(null);
+        }}
         onSave={handleSave}
         catalogItems={catalogItems}
         units={units}

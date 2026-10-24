@@ -81,6 +81,74 @@ export async function createRecipe(
   return { data: { recipeId: String(recipe.id) } };
 }
 
+export async function updateRecipe(
+  organizationId: string,
+  recipeId: string,
+  values: CreateRecipeFormValues,
+): Promise<ActionError | ActionSuccess<{ recipeId: string }>> {
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. Check your environment variables." };
+  }
+
+  if (!organizationId) {
+    return { error: "Select an organization before editing recipes." };
+  }
+
+  if (!values.name.trim()) return { error: "Recipe name is required." };
+  if (values.ingredients.length === 0) return { error: "Add at least one item or batch." };
+
+  const numericId = Number(recipeId);
+  if (!Number.isFinite(numericId)) return { error: "Recipe was not found." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be signed in to edit a recipe." };
+  }
+
+  const isMember = await verifyOrgMembership(supabase, organizationId, user.id);
+  if (!isMember) {
+    return { error: "You do not have access to this organization." };
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("recipes")
+    .select("id")
+    .eq("id", numericId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (existingError) return { error: existingError.message };
+  if (!existing) return { error: "Recipe was not found." };
+
+  const { error: recipeError } = await supabase
+    .from("recipes")
+    .update({ name: values.name.trim() })
+    .eq("id", numericId)
+    .eq("organization_id", organizationId);
+
+  if (recipeError) return { error: recipeError.message };
+
+  const { error: deleteError } = await supabase
+    .from("recipe_ingredients")
+    .delete()
+    .eq("recipe_id", numericId);
+
+  if (deleteError) return { error: deleteError.message };
+
+  const { error: ingredientsError } = await supabase
+    .from("recipe_ingredients")
+    .insert(mapFormToRecipeIngredientInserts(numericId, values.ingredients));
+
+  if (ingredientsError) return { error: ingredientsError.message };
+
+  revalidatePath("/recipes");
+  return { data: { recipeId } };
+}
+
 export async function deleteRecipes(
   organizationId: string,
   recipeIds: string[],

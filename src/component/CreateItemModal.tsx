@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
 import { calculateItemCost, formatCostValue } from "@/lib/items/cost";
@@ -13,6 +13,7 @@ import {
 import {
   createEmptyItemFormValues,
   type CreateItemFormValues,
+  type InventoryItem,
 } from "@/types/item";
 
 type BeverageFormValues = {
@@ -31,6 +32,9 @@ type CreateItemModalProps = {
   open: boolean;
   onClose: () => void;
   onSave: (values: CreateItemFormValues) => Promise<void>;
+  mode?: "create" | "edit";
+  category?: string;
+  initialValues?: BeverageFormValues | null;
 };
 
 type FormErrors = Partial<Record<keyof BeverageFormValues, string>>;
@@ -66,14 +70,38 @@ function unitOfMeasureFromBaseUnit(baseUnit: string): string {
   }
 }
 
-function toCreateItemFormValues(values: BeverageFormValues): CreateItemFormValues {
+export function beverageFormValuesFromItem(item: InventoryItem): BeverageFormValues {
+  return {
+    name: item.name,
+    subCategory: item.subcategory,
+    baseUnit: item.baseUnit,
+    caseSize: item.caseSize,
+    unitSize: item.unitSize,
+    vendor: item.vendor,
+    sku: item.sku,
+    price: item.price,
+    comments: "",
+  };
+}
+
+function withCurrentOption(options: readonly string[], current: string): string[] {
+  const trimmed = current.trim();
+  if (!trimmed || options.includes(trimmed)) return [...options];
+  return [trimmed, ...options];
+}
+
+function toCreateItemFormValues(
+  values: BeverageFormValues,
+  category: string,
+): CreateItemFormValues {
   const cost = calculateItemCost(values.price, values.caseSize);
   const unitOfMeasure = unitOfMeasureFromBaseUnit(values.baseUnit);
 
   return {
     ...createEmptyItemFormValues(),
     name: values.name.trim(),
-    category: "Beverage",
+    category,
+    subcategory: values.subCategory,
     caseSize: values.caseSize,
     unitSize: values.unitSize,
     unitOfMeasure,
@@ -179,7 +207,10 @@ function Field({
   );
 }
 
-function validateForm(values: BeverageFormValues): FormErrors {
+function validateForm(
+  values: BeverageFormValues,
+  vendorRequired: boolean,
+): FormErrors {
   const errors: FormErrors = {};
 
   if (!values.name.trim()) errors.name = "Name is required.";
@@ -204,7 +235,7 @@ function validateForm(values: BeverageFormValues): FormErrors {
     }
   }
 
-  if (!values.vendor) errors.vendor = "Vendor is required.";
+  if (vendorRequired && !values.vendor) errors.vendor = "Vendor is required.";
 
   if (!values.price.trim()) {
     errors.price = "Price is required.";
@@ -218,15 +249,35 @@ function validateForm(values: BeverageFormValues): FormErrors {
   return errors;
 }
 
-export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps) {
+export function CreateItemModal({
+  open,
+  onClose,
+  onSave,
+  mode = "create",
+  category = "Beverage",
+  initialValues = null,
+}: CreateItemModalProps) {
   const [values, setValues] = useState(createEmptyBeverageFormValues);
+  const [seededOptions, setSeededOptions] = useState({
+    subCategory: "",
+    baseUnit: "",
+    vendor: "",
+  });
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const initialValuesRef = useRef(initialValues);
+  initialValuesRef.current = initialValues;
 
   useEffect(() => {
     if (!open) return;
-    setValues(createEmptyBeverageFormValues());
+    const seed = initialValuesRef.current ?? createEmptyBeverageFormValues();
+    setValues(seed);
+    setSeededOptions({
+      subCategory: seed.subCategory,
+      baseUnit: seed.baseUnit,
+      vendor: seed.vendor,
+    });
     setErrors({});
     setSaving(false);
     setSubmitError(null);
@@ -246,7 +297,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    const validationErrors = validateForm(values);
+    const validationErrors = validateForm(values, mode === "create");
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       const order = [
@@ -274,7 +325,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
     setSubmitError(null);
 
     try {
-      await onSave(toCreateItemFormValues(values));
+      await onSave(toCreateItemFormValues(values, category));
       onClose();
     } catch (error) {
       setSubmitError(
@@ -289,7 +340,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
     <Modal
       open={open}
       onClose={onClose}
-      title="Create beverage"
+      title={mode === "edit" ? `Edit ${category.toLowerCase()}` : "Create beverage"}
       size="xl"
       mobileSheet
       bodyClassName="overflow-y-auto overscroll-contain py-4 md:overflow-hidden md:py-3"
@@ -361,7 +412,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                   className={selectClassName}
                 >
                   <option value="">Select sub category</option>
-                  {BEVERAGE_SUB_CATEGORIES.map((subCategory) => (
+                  {withCurrentOption(BEVERAGE_SUB_CATEGORIES, seededOptions.subCategory).map((subCategory) => (
                     <option key={subCategory} value={subCategory}>
                       {subCategory}
                     </option>
@@ -421,7 +472,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                     className={`${selectClassName} w-[4.5rem] shrink-0 md:w-24`}
                   >
                     <option value="">Unit</option>
-                    {BASE_UNITS.map((unit) => (
+                    {withCurrentOption(BASE_UNITS, seededOptions.baseUnit).map((unit) => (
                       <option key={unit} value={unit}>
                         {unit}
                       </option>
@@ -442,7 +493,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
             <Field
               id="beverage-vendor"
               label="Vendor"
-              required
+              required={mode === "create"}
               error={errors.vendor}
               className="col-span-2 md:col-span-1"
             >
@@ -453,7 +504,7 @@ export function CreateItemModal({ open, onClose, onSave }: CreateItemModalProps)
                   className={selectClassName}
                 >
                   <option value="">Select vendor</option>
-                  {VENDORS.map((vendor) => (
+                  {withCurrentOption(VENDORS, seededOptions.vendor).map((vendor) => (
                     <option key={vendor} value={vendor}>
                       {vendor}
                     </option>

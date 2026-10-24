@@ -34,6 +34,7 @@ type ItemsMobileListProps = {
   onClearSelection: () => void;
   onRequestDelete: (ids: string[], prompt: string) => void;
   onAdd: () => void;
+  onEdit: (item: InventoryItem) => void;
 };
 
 function vendorLabel(vendor: string): string {
@@ -85,6 +86,7 @@ export function ItemsMobileList({
   onClearSelection,
   onRequestDelete,
   onAdd,
+  onEdit,
 }: ItemsMobileListProps) {
   const [selecting, setSelecting] = useState(false);
   const [openItem, setOpenItem] = useState<InventoryItem | null>(null);
@@ -299,6 +301,12 @@ export function ItemsMobileList({
             <button
               type="button"
               disabled={!organizationId}
+              onClick={() => {
+                if (!openItem) return;
+                const item = openItem;
+                setOpenItem(null);
+                onEdit(item);
+              }}
               className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:opacity-50"
             >
               Edit

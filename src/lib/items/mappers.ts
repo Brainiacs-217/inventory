@@ -16,6 +16,7 @@ export type CatalogItemRow = {
   } | null;
   item_packages:
     | {
+        id: number | string;
         sku: string | null;
         purchase_price: number | string | null;
         units_per_package: number | null;
@@ -29,6 +30,13 @@ export type CatalogItemRow = {
 function formatNumericDisplay(value: number): string {
   if (Number.isInteger(value)) return String(value);
   return String(parseFloat(value.toFixed(4)));
+}
+
+function formatOptionalNumber(value: number | string | null | undefined): string {
+  if (value == null || value === "") return "";
+  const parsed = typeof value === "number" ? value : parseFloat(value);
+  if (!Number.isFinite(parsed)) return "";
+  return formatNumericDisplay(parsed);
 }
 
 function formatPackageReportingUnit(
@@ -98,11 +106,20 @@ export function mapItemRowToInventoryItem(row: Tables<"items">): InventoryItem {
     category: row.category,
     subcategory: "",
     vendor: row.vendor ?? "",
+    caseSize: row.case_size != null ? formatNumericDisplay(row.case_size) : "",
+    unitSize: formatNumericDisplay(row.unit_size),
+    baseUnit: row.base_unit,
+    price: formatNumericDisplay(row.price),
   };
 }
 
+function primaryPackage(packages: CatalogItemRow["item_packages"]) {
+  if (!packages?.length) return undefined;
+  return [...packages].sort((left, right) => Number(left.id) - Number(right.id))[0];
+}
+
 export function mapCatalogItemRow(row: CatalogItemRow): InventoryItem {
-  const pkg = row.item_packages?.[0];
+  const pkg = primaryPackage(row.item_packages);
   const itemType = row.subcategory?.category?.item_type?.name?.trim() ?? "";
   const categoryName = row.subcategory?.category?.name?.trim() ?? "";
   const subcategoryName = row.subcategory?.name?.trim() ?? "";
@@ -120,5 +137,12 @@ export function mapCatalogItemRow(row: CatalogItemRow): InventoryItem {
     category: itemType || categoryName,
     subcategory: subcategoryName,
     vendor: pkg?.vendor?.name ?? "",
+    caseSize:
+      pkg?.units_per_package != null
+        ? formatNumericDisplay(pkg.units_per_package)
+        : "",
+    unitSize: formatOptionalNumber(pkg?.unit_size),
+    baseUnit: pkg?.unit?.symbol ?? "",
+    price: formatOptionalNumber(pkg?.purchase_price),
   };
 }

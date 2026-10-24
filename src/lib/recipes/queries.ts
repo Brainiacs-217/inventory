@@ -15,7 +15,9 @@ export async function getOrganizationRecipes(
 
   const { data, error } = await supabase
     .from("recipes")
-    .select("id, name, created_at, recipe_ingredients(id)")
+    .select(
+      "id, name, created_at, recipe_ingredients(id, item_id, batch_id, quantity, unit_id, role, note)",
+    )
     .eq("organization_id", organizationId)
     .order("name");
 
@@ -26,7 +28,17 @@ export async function getOrganizationRecipes(
 
   return (data ?? []).map((row) =>
     mapRecipeRowToRecipe(
-      row as Tables<"recipes"> & { recipe_ingredients: { id: number }[] },
+      row as Tables<"recipes"> & {
+        recipe_ingredients: {
+          id: number;
+          item_id: number | null;
+          batch_id: number | null;
+          quantity: number;
+          unit_id: number;
+          role: string;
+          note: string | null;
+        }[];
+      },
     ),
   );
 }

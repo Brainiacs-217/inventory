@@ -10,7 +10,7 @@ import { Modal } from "@/component/Modal";
 import { RecipesMobileList } from "@/component/RecipesMobileList";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { placeholderRecipeCog } from "@/lib/placeholderPrice";
-import { createRecipe, deleteRecipes } from "@/lib/recipes/actions";
+import { createRecipe, deleteRecipes, updateRecipe } from "@/lib/recipes/actions";
 import type { InventoryItem } from "@/types/item";
 import type {
   BatchOption,
@@ -69,6 +69,7 @@ export function RecipesTable({
   const [itemFilter, setItemFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     ids: string[];
     prompt: string;
@@ -99,7 +100,9 @@ export function RecipesTable({
       throw new Error("Select an organization before adding recipes.");
     }
 
-    const result = await createRecipe(organizationId, values);
+    const result = editingRecipe
+      ? await updateRecipe(organizationId, editingRecipe.id, values)
+      : await createRecipe(organizationId, values);
     if ("error" in result) {
       throw new Error(result.error);
     }
@@ -197,7 +200,14 @@ export function RecipesTable({
         onToggleSelectAll={toggleSelectAll}
         onClearSelection={() => setSelectedIds(new Set())}
         onRequestDelete={requestDelete}
-        onAdd={() => setCreateOpen(true)}
+        onAdd={() => {
+          setEditingRecipe(null);
+          setCreateOpen(true);
+        }}
+        onEdit={(recipe) => {
+          setCreateOpen(false);
+          setEditingRecipe(recipe);
+        }}
       />
 
       <div className="hidden h-full min-h-0 flex-1 flex-col overflow-hidden md:flex">
@@ -259,7 +269,10 @@ export function RecipesTable({
               </button>
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={() => {
+                  setEditingRecipe(null);
+                  setCreateOpen(true);
+                }}
                 disabled={!organizationId}
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-4 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -360,8 +373,17 @@ export function RecipesTable({
       </div>
 
       <CreateRecipeModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        open={createOpen || editingRecipe != null}
+        mode={editingRecipe ? "edit" : "create"}
+        initialValues={
+          editingRecipe
+            ? { name: editingRecipe.name, ingredients: editingRecipe.ingredients }
+            : null
+        }
+        onClose={() => {
+          setCreateOpen(false);
+          setEditingRecipe(null);
+        }}
         onSave={handleSave}
         catalogItems={catalogItems}
         batches={batches}

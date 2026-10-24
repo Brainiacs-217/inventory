@@ -17,6 +17,7 @@ export type Recipe = {
   name: string;
   createdAt: string;
   ingredientCount: number;
+  ingredients: RecipeIngredientInput[];
 };
 
 export type CreateRecipeFormValues = {

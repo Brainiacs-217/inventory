@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { CreateFoodItemModal } from "@/component/CreateFoodItemModal";
-import { CreateItemModal } from "@/component/CreateItemModal";
+import {
+  beverageFormValuesFromItem,
+  CreateItemModal,
+} from "@/component/CreateItemModal";
 import { CreateSupplyItemModal } from "@/component/CreateSupplyItemModal";
 import { ItemsMobileList } from "@/component/ItemsMobileList";
 import { ListFilterButton } from "@/component/ListFilterButton";
 import { Modal } from "@/component/Modal";
-import { createItem, deleteItems } from "@/lib/items/actions";
+import { createItem, deleteItems, updateItem } from "@/lib/items/actions";
 import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/lookups";
 import type { CreateItemFormValues, InventoryItem } from "@/types/item";
 
@@ -102,6 +105,7 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
   const [vendorFilter, setVendorFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     ids: string[];
     prompt: string;
@@ -151,10 +155,16 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
 
   async function handleSave(values: CreateItemFormValues) {
     if (!organizationId) {
-      throw new Error("Select an organization before adding items.");
+      throw new Error(
+        editingItem
+          ? "Select an organization before editing items."
+          : "Select an organization before adding items.",
+      );
     }
 
-    const result = await createItem(organizationId, values);
+    const result = editingItem
+      ? await updateItem(organizationId, editingItem.id, values)
+      : await createItem(organizationId, values);
     if ("error" in result) {
       throw new Error(result.error);
     }
@@ -271,7 +281,14 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
         onToggleSelectAll={toggleSelectAll}
         onClearSelection={() => setSelectedIds(new Set())}
         onRequestDelete={requestDelete}
-        onAdd={() => setCreateOpen(true)}
+        onAdd={() => {
+          setEditingItem(null);
+          setCreateOpen(true);
+        }}
+        onEdit={(item) => {
+          setCreateOpen(false);
+          setEditingItem(item);
+        }}
       />
       <div className="hidden h-full min-h-0 flex-1 flex-col overflow-hidden md:flex">
         <div className="mb-3 flex shrink-0 items-center gap-2 md:mb-4 md:gap-3">
@@ -355,7 +372,10 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
               </button>
               <button
                 type="button"
-                onClick={() => setCreateOpen(true)}
+                onClick={() => {
+                  setEditingItem(null);
+                  setCreateOpen(true);
+                }}
                 disabled={!organizationId}
                 className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50 md:px-4"
               >
@@ -516,8 +536,19 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
       </div>
 
       <CreateItemModal
-        open={createOpen && activeSection === "Beverage"}
-        onClose={() => setCreateOpen(false)}
+        open={
+          (createOpen && activeSection === "Beverage" && editingItem == null) ||
+          editingItem != null
+        }
+        mode={editingItem ? "edit" : "create"}
+        category={editingItem?.category || "Beverage"}
+        initialValues={
+          editingItem ? beverageFormValuesFromItem(editingItem) : null
+        }
+        onClose={() => {
+          setCreateOpen(false);
+          setEditingItem(null);
+        }}
         onSave={handleSave}
       />
 

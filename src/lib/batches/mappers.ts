@@ -9,6 +9,19 @@ function toNumericId(id: string): number {
   return Number(id);
 }
 
+function formatQuantity(value: number | string): string {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) return "";
+  return String(parseFloat(parsed.toFixed(4)));
+}
+
+type BatchIngredientRow = {
+  id: number;
+  item_id: number;
+  quantity: number | string;
+  unit_id: number;
+};
+
 export function mapFormToBatchInsert(
   values: CreateBatchFormValues,
   organizationId: string,
@@ -34,15 +47,24 @@ export function mapFormToBatchIngredientInserts(
 }
 
 export function mapBatchRowToBatch(
-  row: Tables<"batches"> & { batch_ingredients?: { id: number }[] | null },
+  row: Tables<"batches"> & { batch_ingredients?: BatchIngredientRow[] | null },
   yieldUnitSymbol: string,
 ): Batch {
+  const ingredients = (row.batch_ingredients ?? []).map((ingredient) => ({
+    id: String(ingredient.id),
+    itemId: String(ingredient.item_id),
+    quantity: formatQuantity(ingredient.quantity),
+    unitId: String(ingredient.unit_id),
+  }));
+
   return {
     id: String(row.id),
     name: row.name,
     createdAt: row.created_at,
     yieldQuantity: Number(row.yield_quantity),
+    yieldUnitId: String(row.yield_unit_id),
     yieldUnitSymbol,
-    ingredientCount: row.batch_ingredients?.length ?? 0,
+    ingredientCount: ingredients.length,
+    ingredients,
   };
 }

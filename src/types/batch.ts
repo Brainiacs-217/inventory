@@ -3,8 +3,10 @@ export type Batch = {
   name: string;
   createdAt: string;
   yieldQuantity: number;
+  yieldUnitId: string;
   yieldUnitSymbol: string;
   ingredientCount: number;
+  ingredients: BatchIngredientInput[];
 };
 
 export type BatchIngredientInput = {

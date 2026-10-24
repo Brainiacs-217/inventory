@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BatchIdentityForm } from "@/component/batch/BatchIdentityForm";
 import { BatchIngredientList } from "@/component/batch/BatchIngredientList";
@@ -21,6 +21,8 @@ type CreateBatchModalProps = {
   onSave: (values: CreateBatchFormValues) => Promise<void>;
   catalogItems: InventoryItem[];
   units: UnitOption[];
+  mode?: "create" | "edit";
+  initialValues?: CreateBatchFormValues | null;
 };
 
 type FormErrors = Partial<
@@ -68,12 +70,22 @@ function validateForm(values: CreateBatchFormValues): FormErrors {
   return errors;
 }
 
+function seedBatchValues(initialValues: CreateBatchFormValues | null): CreateBatchFormValues {
+  if (!initialValues) return createEmptyBatchFormValues();
+  return {
+    ...initialValues,
+    ingredients: initialValues.ingredients.map((ingredient) => ({ ...ingredient })),
+  };
+}
+
 export function CreateBatchModal({
   open,
   onClose,
   onSave,
   catalogItems,
   units,
+  mode = "create",
+  initialValues = null,
 }: CreateBatchModalProps) {
   const [values, setValues] = useState<CreateBatchFormValues>(
     createEmptyBatchFormValues(),
@@ -81,10 +93,12 @@ export function CreateBatchModal({
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const initialValuesRef = useRef(initialValues);
+  initialValuesRef.current = initialValues;
 
   useEffect(() => {
     if (!open) return;
-    setValues(createEmptyBatchFormValues());
+    setValues(seedBatchValues(initialValuesRef.current));
     setErrors({});
     setSaving(false);
     setSubmitError(null);
@@ -183,7 +197,7 @@ export function CreateBatchModal({
     <Modal
       open={open}
       onClose={onClose}
-      title="Create batch"
+      title={mode === "edit" ? "Edit batch" : "Create batch"}
       footer={footer}
       size="xl"
       mobileSheet

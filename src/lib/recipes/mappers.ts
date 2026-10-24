@@ -9,6 +9,22 @@ function toNumericId(id: string): number {
   return Number(id);
 }
 
+function formatQuantity(value: number | string): string {
+  const parsed = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(parsed)) return "";
+  return String(parseFloat(parsed.toFixed(4)));
+}
+
+type RecipeIngredientRow = {
+  id: number;
+  item_id: number | null;
+  batch_id: number | null;
+  quantity: number | string;
+  unit_id: number;
+  role: string;
+  note: string | null;
+};
+
 export function mapFormToRecipeInsert(
   values: CreateRecipeFormValues,
   organizationId: string,
@@ -41,13 +57,31 @@ export function mapFormToRecipeIngredientInserts(
 }
 
 export function mapRecipeRowToRecipe(
-  row: Tables<"recipes"> & { recipe_ingredients?: { id: number }[] },
+  row: Tables<"recipes"> & { recipe_ingredients?: RecipeIngredientRow[] },
 ): Recipe {
+  const ingredients = (row.recipe_ingredients ?? []).map((ingredient) => {
+    const source = ingredient.batch_id != null ? "batch" : "item";
+    return {
+      id: String(ingredient.id),
+      source,
+      itemId: source === "item" && ingredient.item_id != null ? String(ingredient.item_id) : null,
+      batchId:
+        source === "batch" && ingredient.batch_id != null
+          ? String(ingredient.batch_id)
+          : null,
+      quantity: formatQuantity(ingredient.quantity),
+      unitId: String(ingredient.unit_id),
+      role: ingredient.role === "garnish" ? "garnish" : "ingredient",
+      note: ingredient.note ?? "",
+    } as const;
+  });
+
   return {
     id: String(row.id),
     name: row.name,
     createdAt: row.created_at,
-    ingredientCount: row.recipe_ingredients?.length ?? 0,
+    ingredientCount: ingredients.length,
+    ingredients: [...ingredients],
   };
 }
 

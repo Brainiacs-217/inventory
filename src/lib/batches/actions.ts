@@ -114,6 +114,79 @@ export async function createBatch(
   return { data: { batchId: String(batch.id) } };
 }
 
+export async function updateBatch(
+  organizationId: string,
+  batchId: string,
+  values: CreateBatchFormValues,
+): Promise<ActionError | ActionSuccess<{ batchId: string }>> {
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. Check your environment variables." };
+  }
+
+  if (!organizationId) {
+    return { error: "Select an organization before editing batches." };
+  }
+
+  const validationError = validateBatch(values);
+  if (validationError) return { error: validationError };
+
+  const numericId = Number(batchId);
+  if (!Number.isFinite(numericId)) return { error: "Batch was not found." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be signed in to edit a batch." };
+  }
+
+  const isMember = await verifyOrgMembership(supabase, organizationId, user.id);
+  if (!isMember) {
+    return { error: "You do not have access to this organization." };
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from("batches")
+    .select("id")
+    .eq("id", numericId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (existingError) return { error: existingError.message };
+  if (!existing) return { error: "Batch was not found." };
+
+  const { error: batchError } = await supabase
+    .from("batches")
+    .update({
+      name: values.name.trim(),
+      yield_quantity: Number(values.yieldQuantity),
+      yield_unit_id: Number(values.yieldUnitId),
+    })
+    .eq("id", numericId)
+    .eq("organization_id", organizationId);
+
+  if (batchError) return { error: batchError.message };
+
+  const { error: deleteError } = await supabase
+    .from("batch_ingredients")
+    .delete()
+    .eq("batch_id", numericId);
+
+  if (deleteError) return { error: deleteError.message };
+
+  const { error: ingredientsError } = await supabase
+    .from("batch_ingredients")
+    .insert(mapFormToBatchIngredientInserts(numericId, values.ingredients));
+
+  if (ingredientsError) return { error: ingredientsError.message };
+
+  revalidatePath("/batches");
+  revalidatePath("/recipes");
+  return { data: { batchId } };
+}
+
 export async function deleteBatches(
   organizationId: string,
   batchIds: string[],

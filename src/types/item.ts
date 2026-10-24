@@ -7,6 +7,10 @@ export type InventoryItem = {
   category: string;
   subcategory: string;
   vendor: string;
+  caseSize: string;
+  unitSize: string;
+  baseUnit: string;
+  price: string;
 };
 
 export type ItemConversion = {
@@ -24,6 +28,7 @@ export type ItemWeightSettings = {
 export type CreateItemFormValues = {
   name: string;
   category: string;
+  subcategory: string;
   caseSize: string;
   unitSize: string;
   unitOfMeasure: string;
@@ -63,6 +68,7 @@ export function createEmptyItemFormValues(): CreateItemFormValues {
   return {
     name: "",
     category: "",
+    subcategory: "",
     caseSize: "",
     unitSize: "",
     unitOfMeasure: "",

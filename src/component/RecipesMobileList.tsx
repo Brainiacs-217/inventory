@@ -27,6 +27,7 @@ type RecipesMobileListProps = {
   onClearSelection: () => void;
   onRequestDelete: (ids: string[], prompt: string) => void;
   onAdd: () => void;
+  onEdit: (recipe: Recipe) => void;
 };
 
 function itemLabel(count: number): string {
@@ -49,6 +50,7 @@ export function RecipesMobileList({
   onClearSelection,
   onRequestDelete,
   onAdd,
+  onEdit,
 }: RecipesMobileListProps) {
   const [selecting, setSelecting] = useState(false);
   const [openRecipe, setOpenRecipe] = useState<Recipe | null>(null);
@@ -213,6 +215,23 @@ export function RecipesMobileList({
         open={openRecipe != null}
         title={openRecipe?.name ?? "Recipe"}
         onClose={() => setOpenRecipe(null)}
+        footer={
+          openRecipe ? (
+            <button
+              type="button"
+              disabled={!organizationId}
+              onClick={() => {
+                if (!openRecipe) return;
+                const recipe = openRecipe;
+                setOpenRecipe(null);
+                onEdit(recipe);
+              }}
+              className="inline-flex w-full items-center justify-center rounded-md bg-accent px-3 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:opacity-50"
+            >
+              Edit
+            </button>
+          ) : null
+        }
       >
         {openRecipe ? (
           <dl className="flex flex-col">
@@ -322,11 +341,13 @@ function MobileSheet({
   title,
   onClose,
   children,
+  footer,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: ReactNode;
+  footer?: ReactNode;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -372,6 +393,9 @@ function MobileSheet({
           </button>
         </div>
         <div className="overflow-y-auto px-4 py-3">{children}</div>
+        {footer ? (
+          <div className="border-t border-border/80 px-4 py-3">{footer}</div>
+        ) : null}
       </div>
     </div>
   );

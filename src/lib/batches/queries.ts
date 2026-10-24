@@ -44,7 +44,9 @@ export async function getOrganizationBatchList(
   const [{ data, error }, { data: units, error: unitsError }] = await Promise.all([
     supabase
       .from("batches")
-      .select("id, name, created_at, yield_quantity, yield_unit_id, batch_ingredients(id)")
+      .select(
+        "id, name, created_at, yield_quantity, yield_unit_id, batch_ingredients(id, item_id, quantity, unit_id)",
+      )
       .eq("organization_id", organizationId)
       .order("name"),
     supabase.from("units").select("id, symbol"),
@@ -63,7 +65,14 @@ export async function getOrganizationBatchList(
 
   return (data ?? []).map((row) =>
     mapBatchRowToBatch(
-      row as Tables<"batches"> & { batch_ingredients: { id: number }[] | null },
+      row as Tables<"batches"> & {
+        batch_ingredients: {
+          id: number;
+          item_id: number;
+          quantity: number;
+          unit_id: number;
+        }[] | null;
+      },
       symbols.get(row.yield_unit_id) ?? "",
     ),
   );
