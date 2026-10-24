@@ -142,7 +142,7 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
 
   return (
     <div
-      className={`shrink-0 border-b border-sidebar-border py-4 ${collapsed ? "px-2" : "px-3"}`}
+      className={`shrink-0 border-b border-sidebar-border py-3 md:py-4 ${collapsed ? "px-2" : "px-3"}`}
     >
       <div className="flex items-center py-1">
         <button
