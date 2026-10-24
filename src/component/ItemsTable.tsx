@@ -301,8 +301,8 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
         </div>
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]">
-        <div className="flex shrink-0 flex-col gap-2 border-b border-border/80 bg-surface px-3 py-3 md:flex-row md:flex-wrap md:items-center md:px-5 md:py-3.5">
-          <div className="flex min-w-0 w-full flex-col gap-2 md:flex-1 md:flex-row md:flex-wrap md:items-center">
+        <div className="flex shrink-0 flex-col gap-2 border-b border-border/80 bg-surface px-3 py-3 md:px-5 md:py-3.5">
+          <div className="flex min-w-0 w-full flex-col gap-2 md:flex-row md:items-center">
             <div className="relative w-full min-w-0 md:max-w-sm md:min-w-48 md:flex-1">
               <Search
                 aria-hidden
@@ -321,16 +321,6 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
             <ListFilterButton
               disabled={!organizationId}
               fields={[
-                {
-                  fieldLabel: "Category",
-                  value: categoryFilter,
-                  onChange: setCategoryFilter,
-                  allLabel: "All categories",
-                  options: categoryOptions.map((category) => ({
-                    value: category,
-                    label: category,
-                  })),
-                },
                 {
                   fieldLabel: "Vendor",
                   value: vendorFilter,
@@ -353,26 +343,55 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                   <span className="hidden sm:inline">Clear</span>
                 </button>
               ) : null}
+            <div className="grid w-full grid-cols-2 gap-2 md:ml-auto md:flex md:w-auto md:shrink-0">
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                disabled={!someSelected || !organizationId}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border/80 bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border/80 disabled:hover:bg-surface disabled:hover:text-text-secondary md:px-4"
+              >
+                <Trash2 className="size-4" strokeWidth={2} />
+                Delete
+              </button>
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                disabled={!organizationId}
+                className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50 md:px-4"
+              >
+                <Plus className="size-4" strokeWidth={2} />
+                Add item
+              </button>
+            </div>
           </div>
-          <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:shrink-0">
+          <div className="scrollbar-hidden flex w-full gap-2 overflow-x-auto overflow-y-hidden">
             <button
               type="button"
-              onClick={handleDeleteClick}
-              disabled={!someSelected || !organizationId}
-              className="inline-flex items-center justify-center gap-1.5 rounded-md border border-border/80 bg-surface px-3 py-2 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-error/30 hover:bg-error/5 hover:text-error disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:border-border/80 disabled:hover:bg-surface disabled:hover:text-text-secondary md:px-4"
+              onClick={() => setCategoryFilter("")}
+              aria-pressed={categoryFilter === ""}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                categoryFilter === ""
+                  ? "border-transparent bg-sidebar-active text-text-primary"
+                  : "border-border/80 text-text-muted hover:text-text-primary"
+              }`}
             >
-              <Trash2 className="size-4" strokeWidth={2} />
-              Delete
+              All
             </button>
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              disabled={!organizationId}
-              className="inline-flex items-center justify-center gap-1.5 rounded-md bg-accent px-3 py-2 text-sm font-medium text-text-primary shadow-sm transition-[background-color,box-shadow] hover:bg-accent-hover hover:shadow disabled:cursor-not-allowed disabled:opacity-50 md:px-4"
-            >
-              <Plus className="size-4" strokeWidth={2} />
-              Add item
-            </button>
+            {categoryOptions.map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setCategoryFilter(category)}
+                aria-pressed={categoryFilter === category}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  categoryFilter === category
+                    ? "border-transparent bg-sidebar-active text-text-primary"
+                    : "border-border/80 text-text-muted hover:text-text-primary"
+                }`}
+              >
+                {category}
+              </button>
+            ))}
           </div>
         </div>
 

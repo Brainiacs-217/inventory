@@ -32,6 +32,26 @@
 
 }
 
+@keyframes sheet-rise {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+.sheet-rise {
+  animation: sheet-rise 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-rise {
+    animation: none;
+  }
+}
+
 @utility scrollbar-hidden {
   -ms-overflow-style: none;
   scrollbar-width: none;

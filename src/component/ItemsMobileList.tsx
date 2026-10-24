@@ -144,16 +144,6 @@ export function ItemsMobileList({
             disabled={!organizationId}
             fields={[
               {
-                fieldLabel: "Category",
-                value: categoryFilter,
-                onChange: onCategoryFilter,
-                allLabel: "All categories",
-                options: categoryOptions.map((category) => ({
-                  value: category,
-                  label: category,
-                })),
-              },
-              {
                 fieldLabel: "Vendor",
                 value: vendorFilter,
                 onChange: onVendorFilter,
@@ -166,6 +156,34 @@ export function ItemsMobileList({
             ]}
           />
         </div>
+
+        <div className="scrollbar-hidden flex gap-2 overflow-x-auto overflow-y-hidden">
+          <Chip
+            active={categoryFilter === ""}
+            onClick={() => onCategoryFilter("")}
+            label="All"
+          />
+          {categoryOptions.map((category) => (
+            <Chip
+              key={category}
+              active={categoryFilter === category}
+              onClick={() => onCategoryFilter(category)}
+              label={category}
+            />
+          ))}
+        </div>
+
+        {vendorFilter ? (
+          <button
+            type="button"
+            onClick={() => onVendorFilter("")}
+            className="inline-flex w-fit items-center gap-1 rounded-full bg-sidebar-active px-2.5 py-1 text-xs font-medium text-text-primary"
+          >
+            {vendorLabel(vendorFilter)}
+            <X className="size-3" strokeWidth={2} />
+            <span className="sr-only">Clear vendor filter</span>
+          </button>
+        ) : null}
       </div>
 
       <FaintScroller>
@@ -386,6 +404,31 @@ function FaintScroller({ children }: { children: ReactNode }) {
   );
 }
 
+function Chip({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+        active
+          ? "border-transparent bg-sidebar-active text-text-primary"
+          : "border-border/80 text-text-muted hover:text-text-primary"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-4 border-b border-border/60 py-2.5 last:border-b-0">
@@ -435,7 +478,7 @@ function MobileSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="mobile-sheet-title"
-        className="app-safe-bottom relative flex max-h-[85dvh] w-full flex-col rounded-t-2xl border border-border/80 bg-surface"
+        className="sheet-rise app-safe-bottom relative flex max-h-[85dvh] w-full flex-col rounded-t-2xl border border-border/80 bg-surface"
       >
         <div className="flex items-start justify-between gap-3 border-b border-border/80 px-4 py-3.5">
           <h2
