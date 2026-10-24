@@ -106,6 +106,7 @@ export function CreateOrganizationModal({
   );
   const [squareConnected, setSquareConnected] = useState(false);
   const [merchantId, setMerchantId] = useState<string | null>(null);
+  const [gustoConnected, setGustoConnected] = useState(false);
 
   const connectAvailable = Boolean(
     squareOptions?.oauthEnabled || squareOptions?.sandboxConnectEnabled,
@@ -125,6 +126,7 @@ export function CreateOrganizationModal({
     setCreatedOrganizationId(null);
     setSquareConnected(false);
     setMerchantId(null);
+    setGustoConnected(false);
   }, [open]);
 
   function updateField<K extends keyof CreateOrganizationFormValues>(
@@ -373,7 +375,8 @@ export function CreateOrganizationModal({
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className="order-2 flex min-w-0 flex-col gap-3 md:order-1">
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className={labelClassName}>Square</span>
             <div
@@ -411,6 +414,39 @@ export function CreateOrganizationModal({
           </div>
 
           <div className="flex min-w-0 flex-col gap-1.5">
+            <span className={labelClassName}>Gusto</span>
+            <div className="flex h-10 items-center gap-2 rounded-sm border border-border/80 bg-surface px-2.5">
+              <div
+                className={`flex size-6 shrink-0 items-center justify-center rounded-sm border border-border/80 ${
+                  gustoConnected ? "bg-success/10 text-success" : "bg-surface-muted text-text-muted"
+                }`}
+              >
+                {gustoConnected ? (
+                  <Check aria-hidden className="size-3.5" strokeWidth={2} />
+                ) : (
+                  <Plug aria-hidden className="size-3.5" strokeWidth={1.75} />
+                )}
+              </div>
+              <p className="min-w-0 flex-1 truncate text-sm font-medium tracking-tight text-text-primary">
+                {gustoConnected ? "Connected" : "Not connected"}
+              </p>
+              {gustoConnected ? (
+                <span className="shrink-0 text-xs font-medium text-success">Linked</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setGustoConnected(true)}
+                  disabled={busy}
+                  className="inline-flex shrink-0 items-center rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+                >
+                  Connect
+                </button>
+              )}
+            </div>
+          </div>
+          </div>
+
+          <div className="order-1 flex min-w-0 flex-col gap-1.5 md:order-2">
             <span className={labelClassName}>Logo</span>
             <div
               title="Square image recommended. PNG, JPG, WebP, or SVG. Max 2 MB."

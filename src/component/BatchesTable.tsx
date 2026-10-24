@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { BatchesMobileList } from "@/component/BatchesMobileList";
 import { CreateBatchModal } from "@/component/CreateBatchModal";
+import { ListFilterButton } from "@/component/ListFilterButton";
 import { Modal } from "@/component/Modal";
 import { createBatch, deleteBatches } from "@/lib/batches/actions";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -37,7 +38,8 @@ function formatCreatedAt(value: string): string {
   return date.toLocaleDateString();
 }
 
-function batchMatchesQuery(batch: Batch, query: string): boolean {
+function batchMatchesQuery(batch: Batch, query: string, unitFilter: string): boolean {
+  if (unitFilter && batch.yieldUnitSymbol !== unitFilter) return false;
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
   return batch.name.toLowerCase().includes(normalized);
@@ -58,6 +60,7 @@ export function BatchesTable({
 }: BatchesTableProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [unitFilter, setUnitFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{
@@ -67,13 +70,20 @@ export function BatchesTable({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const isFiltering = searchQuery.trim().length > 0;
+  const unitOptions = useMemo(() => {
+    const symbols = [
+      ...new Set(batches.map((batch) => batch.yieldUnitSymbol.trim()).filter(Boolean)),
+    ].sort((left, right) => left.localeCompare(right));
+    return symbols.map((symbol) => ({ value: symbol, label: symbol }));
+  }, [batches]);
+
+  const isFiltering = searchQuery.trim().length > 0 || unitFilter.length > 0;
   const visibleBatches = useMemo(
     () =>
       isFiltering
-        ? batches.filter((batch) => batchMatchesQuery(batch, searchQuery))
+        ? batches.filter((batch) => batchMatchesQuery(batch, searchQuery, unitFilter))
         : batches,
-    [batches, isFiltering, searchQuery],
+    [batches, isFiltering, searchQuery, unitFilter],
   );
 
   const allSelected =
@@ -177,6 +187,9 @@ export function BatchesTable({
         organizationId={organizationId}
         searchQuery={searchQuery}
         onSearchQuery={setSearchQuery}
+        unitFilter={unitFilter}
+        onUnitFilter={setUnitFilter}
+        unitOptions={unitOptions}
         visibleBatches={visibleBatches}
         totalCount={batches.length}
         isFiltering={isFiltering}
@@ -211,10 +224,25 @@ export function BatchesTable({
                 className={SEARCH_INPUT_CLASS}
               />
             </div>
+            <ListFilterButton
+              disabled={!organizationId}
+              fields={[
+                {
+                  fieldLabel: "Yield unit",
+                  value: unitFilter,
+                  onChange: setUnitFilter,
+                  allLabel: "All units",
+                  options: unitOptions,
+                },
+              ]}
+            />
             {isFiltering ? (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setUnitFilter("");
+                }}
                 className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text-primary"
               >
                 <X className="size-3.5" strokeWidth={2} />
@@ -295,7 +323,7 @@ export function BatchesTable({
                     <td colSpan={6} className="px-5 py-10 text-center text-sm text-text-muted">
                       {organizationId
                         ? isFiltering && batches.length > 0
-                          ? "No batches match your search."
+                          ? "No batches match your filters."
                           : "No batches yet. Add your first batch to get started."
                         : "Select an organization in the sidebar to manage batches."}
                     </td>

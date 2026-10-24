@@ -1,13 +1,14 @@
 "use client";
 
-import { ChevronDown, Plus, Search, Trash2, X } from "lucide-react";
+import { Plus, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 
 import { CreateFoodItemModal } from "@/component/CreateFoodItemModal";
 import { CreateItemModal } from "@/component/CreateItemModal";
 import { CreateSupplyItemModal } from "@/component/CreateSupplyItemModal";
 import { ItemsMobileList } from "@/component/ItemsMobileList";
+import { ListFilterButton } from "@/component/ListFilterButton";
 import { Modal } from "@/component/Modal";
 import { createItem, deleteItems } from "@/lib/items/actions";
 import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/lookups";
@@ -33,9 +34,6 @@ function TableColgroup() {
 
 const SEARCH_INPUT_CLASS =
   "w-full rounded-md border border-border/80 bg-surface py-2 pl-9 pr-3 text-sm text-text-primary shadow-sm outline-none placeholder:text-text-muted/60 transition-[border-color,box-shadow] hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50";
-
-const FILTER_SELECT_CLASS =
-  "w-full appearance-none rounded-md border border-border/80 bg-surface py-2 pl-3 pr-8 text-sm text-text-primary shadow-sm outline-none transition-[border-color,box-shadow] hover:border-text-muted/30 focus:border-accent/50 focus:ring-2 focus:ring-accent/15 disabled:cursor-not-allowed disabled:opacity-50";
 
 function formatItemCount(
   visibleCount: number,
@@ -78,38 +76,6 @@ function itemMatchesFilters(
   if (category && itemCategoryLabel(item) !== category) return false;
   if (vendor && itemVendorKey(item) !== vendor) return false;
   return true;
-}
-
-function FilterSelect({
-  value,
-  onChange,
-  label,
-  disabled,
-  children,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-  label: string;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <div className="relative min-w-0 flex-1 md:max-w-48 md:flex-none md:min-w-34">
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={disabled}
-        aria-label={label}
-        className={FILTER_SELECT_CLASS}
-      >
-        {children}
-      </select>
-      <ChevronDown
-        aria-hidden
-        className="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-text-muted"
-      />
-    </div>
-  );
 }
 
 function sectionEmptyLabel(section: ItemCategory): string {
@@ -352,34 +318,32 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                 className={SEARCH_INPUT_CLASS}
               />
             </div>
-            <div className="flex min-w-0 w-full items-center gap-2 md:w-auto md:flex-1">
-              <FilterSelect
-                value={categoryFilter}
-                onChange={setCategoryFilter}
-                label="Filter by category"
-                disabled={!organizationId}
-              >
-                <option value="">All categories</option>
-                {categoryOptions.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </FilterSelect>
-              <FilterSelect
-                value={vendorFilter}
-                onChange={setVendorFilter}
-                label="Filter by vendor"
-                disabled={!organizationId}
-              >
-                <option value="">All vendors</option>
-                {vendorOptions.map((vendor) => (
-                  <option key={vendor} value={vendor}>
-                    {vendor === NO_VENDOR ? "No vendor" : vendor}
-                  </option>
-                ))}
-              </FilterSelect>
-              {isFiltering ? (
+            <ListFilterButton
+              disabled={!organizationId}
+              fields={[
+                {
+                  fieldLabel: "Category",
+                  value: categoryFilter,
+                  onChange: setCategoryFilter,
+                  allLabel: "All categories",
+                  options: categoryOptions.map((category) => ({
+                    value: category,
+                    label: category,
+                  })),
+                },
+                {
+                  fieldLabel: "Vendor",
+                  value: vendorFilter,
+                  onChange: setVendorFilter,
+                  allLabel: "All vendors",
+                  options: vendorOptions.map((vendor) => ({
+                    value: vendor,
+                    label: vendor === NO_VENDOR ? "No vendor" : vendor,
+                  })),
+                },
+              ]}
+            />
+            {isFiltering ? (
                 <button
                   type="button"
                   onClick={handleClearFilters}
@@ -389,7 +353,6 @@ export function ItemsTable({ items, organizationId }: ItemsTableProps) {
                   <span className="hidden sm:inline">Clear</span>
                 </button>
               ) : null}
-            </div>
           </div>
           <div className="grid w-full grid-cols-2 gap-2 md:flex md:w-auto md:shrink-0">
             <button

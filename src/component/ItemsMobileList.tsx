@@ -3,6 +3,7 @@
 import { Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { ListFilterButton } from "@/component/ListFilterButton";
 import { ITEM_CATEGORIES, type ItemCategory } from "@/lib/lookups";
 import type { InventoryItem } from "@/types/item";
 
@@ -86,7 +87,6 @@ export function ItemsMobileList({
   onAdd,
 }: ItemsMobileListProps) {
   const [selecting, setSelecting] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [openItem, setOpenItem] = useState<InventoryItem | null>(null);
   const visibleSelectedIds = visibleItems
     .filter((item) => selectedIds.has(item.id))
@@ -99,7 +99,6 @@ export function ItemsMobileList({
 
   function openDelete(ids: string[], prompt: string) {
     setOpenItem(null);
-    setFilterOpen(false);
     onRequestDelete(ids, prompt);
   }
 
@@ -141,48 +140,32 @@ export function ItemsMobileList({
               className={SEARCH_INPUT_CLASS}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setFilterOpen(true)}
+          <ListFilterButton
             disabled={!organizationId}
-            aria-expanded={filterOpen}
-            className={`relative shrink-0 rounded-md px-2.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
-              vendorFilter
-                ? "bg-sidebar-active text-text-primary"
-                : "text-text-secondary hover:text-text-primary"
-            }`}
-          >
-            Filter
-          </button>
-        </div>
-
-        <div className="scrollbar-hidden flex gap-2 overflow-x-auto overflow-y-hidden">
-          <Chip
-            active={categoryFilter === ""}
-            onClick={() => onCategoryFilter("")}
-            label="All"
+            fields={[
+              {
+                fieldLabel: "Category",
+                value: categoryFilter,
+                onChange: onCategoryFilter,
+                allLabel: "All categories",
+                options: categoryOptions.map((category) => ({
+                  value: category,
+                  label: category,
+                })),
+              },
+              {
+                fieldLabel: "Vendor",
+                value: vendorFilter,
+                onChange: onVendorFilter,
+                allLabel: "All vendors",
+                options: vendorOptions.map((vendor) => ({
+                  value: vendor,
+                  label: vendorLabel(vendor),
+                })),
+              },
+            ]}
           />
-          {categoryOptions.map((category) => (
-            <Chip
-              key={category}
-              active={categoryFilter === category}
-              onClick={() => onCategoryFilter(category)}
-              label={category}
-            />
-          ))}
         </div>
-
-        {vendorFilter ? (
-          <button
-            type="button"
-            onClick={() => onVendorFilter("")}
-            className="inline-flex w-fit items-center gap-1 rounded-full bg-sidebar-active px-2.5 py-1 text-xs font-medium text-text-primary"
-          >
-            {vendorLabel(vendorFilter)}
-            <X className="size-3" strokeWidth={2} />
-            <span className="sr-only">Clear vendor filter</span>
-          </button>
-        ) : null}
       </div>
 
       <FaintScroller>
@@ -288,38 +271,6 @@ export function ItemsMobileList({
         )}
         </div>
       </div>
-
-      <MobileSheet
-        open={filterOpen}
-        title="Filter"
-        onClose={() => setFilterOpen(false)}
-      >
-        <label className="flex flex-col gap-1.5 text-sm text-text-secondary">
-          Vendor
-          <select
-            value={vendorFilter}
-            onChange={(event) => onVendorFilter(event.target.value)}
-            aria-label="Filter by vendor"
-            className="w-full appearance-none rounded-md border border-border/80 bg-surface px-3 py-2 text-sm text-text-primary shadow-sm outline-none"
-          >
-            <option value="">All vendors</option>
-            {vendorOptions.map((vendor) => (
-              <option key={vendor} value={vendor}>
-                {vendorLabel(vendor)}
-              </option>
-            ))}
-          </select>
-        </label>
-        {vendorFilter ? (
-          <button
-            type="button"
-            onClick={() => onVendorFilter("")}
-            className="mt-3 text-sm font-medium text-text-secondary"
-          >
-            Clear
-          </button>
-        ) : null}
-      </MobileSheet>
 
       <MobileSheet
         open={openItem != null}
@@ -432,31 +383,6 @@ function FaintScroller({ children }: { children: ReactNode }) {
         </div>
       ) : null}
     </div>
-  );
-}
-
-function Chip({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-        active
-          ? "border-transparent bg-sidebar-active text-text-primary"
-          : "border-border/80 text-text-muted hover:text-text-primary"
-      }`}
-    >
-      {label}
-    </button>
   );
 }
 

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { CreateRecipeModal } from "@/component/CreateRecipeModal";
+import { ListFilterButton } from "@/component/ListFilterButton";
 import { Modal } from "@/component/Modal";
 import { RecipesMobileList } from "@/component/RecipesMobileList";
 import { formatCurrency } from "@/lib/formatCurrency";
@@ -35,7 +36,14 @@ function formatRecipeCount(
   return `${visibleCount} of ${totalCount} ${totalCount === 1 ? "recipe" : "recipes"}`;
 }
 
-function recipeMatchesQuery(recipe: Recipe, query: string): boolean {
+const RECIPE_ITEM_FILTERS = [
+  { value: "with", label: "With items" },
+  { value: "empty", label: "No items" },
+];
+
+function recipeMatchesQuery(recipe: Recipe, query: string, itemFilter: string): boolean {
+  if (itemFilter === "with" && recipe.ingredientCount === 0) return false;
+  if (itemFilter === "empty" && recipe.ingredientCount > 0) return false;
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
   return recipe.name.toLowerCase().includes(normalized);
@@ -58,6 +66,7 @@ export function RecipesTable({
 }: RecipesTableProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [itemFilter, setItemFilter] = useState("");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{
@@ -67,13 +76,13 @@ export function RecipesTable({
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const isFiltering = searchQuery.trim().length > 0;
+  const isFiltering = searchQuery.trim().length > 0 || itemFilter.length > 0;
   const visibleRecipes = useMemo(
     () =>
       isFiltering
-        ? recipes.filter((recipe) => recipeMatchesQuery(recipe, searchQuery))
+        ? recipes.filter((recipe) => recipeMatchesQuery(recipe, searchQuery, itemFilter))
         : recipes,
-    [isFiltering, recipes, searchQuery],
+    [isFiltering, itemFilter, recipes, searchQuery],
   );
 
   const allSelected =
@@ -177,6 +186,8 @@ export function RecipesTable({
         organizationId={organizationId}
         searchQuery={searchQuery}
         onSearchQuery={setSearchQuery}
+        itemFilter={itemFilter}
+        onItemFilter={setItemFilter}
         visibleRecipes={visibleRecipes}
         totalCount={recipes.length}
         isFiltering={isFiltering}
@@ -211,10 +222,25 @@ export function RecipesTable({
                 className={SEARCH_INPUT_CLASS}
               />
             </div>
+            <ListFilterButton
+              disabled={!organizationId}
+              fields={[
+                {
+                  fieldLabel: "Items",
+                  value: itemFilter,
+                  onChange: setItemFilter,
+                  allLabel: "All recipes",
+                  options: RECIPE_ITEM_FILTERS,
+                },
+              ]}
+            />
             {isFiltering ? (
               <button
                 type="button"
-                onClick={() => setSearchQuery("")}
+                onClick={() => {
+                  setSearchQuery("");
+                  setItemFilter("");
+                }}
                 className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text-primary"
               >
                 <X className="size-3.5" strokeWidth={2} />
@@ -289,7 +315,7 @@ export function RecipesTable({
                     <td colSpan={4} className="px-5 py-10 text-center text-sm text-text-muted">
                       {organizationId
                         ? isFiltering && recipes.length > 0
-                          ? "No recipes match your search."
+                          ? "No recipes match your filters."
                           : "No recipes yet. Add your first recipe to get started."
                         : "Select an organization in the sidebar to manage recipes."}
                     </td>

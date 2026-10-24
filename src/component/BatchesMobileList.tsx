@@ -3,6 +3,7 @@
 import { Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
+import { ListFilterButton, type ListFilterOption } from "@/component/ListFilterButton";
 import { formatCurrency } from "@/lib/formatCurrency";
 import { placeholderBatchPrice } from "@/lib/placeholderPrice";
 import { formatBatchYield, type Batch } from "@/types/batch";
@@ -14,6 +15,9 @@ type BatchesMobileListProps = {
   organizationId: string | null;
   searchQuery: string;
   onSearchQuery: (value: string) => void;
+  unitFilter: string;
+  onUnitFilter: (value: string) => void;
+  unitOptions: ListFilterOption[];
   visibleBatches: Batch[];
   totalCount: number;
   isFiltering: boolean;
@@ -40,6 +44,9 @@ export function BatchesMobileList({
   organizationId,
   searchQuery,
   onSearchQuery,
+  unitFilter,
+  onUnitFilter,
+  unitOptions,
   visibleBatches,
   totalCount,
   isFiltering,
@@ -72,19 +79,33 @@ export function BatchesMobileList({
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:hidden">
       <div className="shrink-0 pb-3">
-        <div className="relative min-w-0">
-          <Search
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-text-muted"
-          />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(event) => onSearchQuery(event.target.value)}
-            placeholder="Search batches…"
+        <div className="flex items-center gap-2">
+          <div className="relative min-w-0 flex-1">
+            <Search
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-text-muted"
+            />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => onSearchQuery(event.target.value)}
+              placeholder="Search batches…"
+              disabled={!organizationId}
+              aria-label="Search batches"
+              className={SEARCH_INPUT_CLASS}
+            />
+          </div>
+          <ListFilterButton
             disabled={!organizationId}
-            aria-label="Search batches"
-            className={SEARCH_INPUT_CLASS}
+            fields={[
+              {
+                fieldLabel: "Yield unit",
+                value: unitFilter,
+                onChange: onUnitFilter,
+                allLabel: "All units",
+                options: unitOptions,
+              },
+            ]}
           />
         </div>
       </div>
@@ -94,7 +115,7 @@ export function BatchesMobileList({
           <p className="px-2 py-10 text-center text-sm text-text-muted">
             {organizationId
               ? isFiltering && totalCount > 0
-                ? "No batches match your search."
+                ? "No batches match your filters."
                 : "No batches yet. Add your first batch to get started."
               : "Select an organization in the sidebar to manage batches."}
           </p>
