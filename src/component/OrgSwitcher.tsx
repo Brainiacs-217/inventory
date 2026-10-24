@@ -12,6 +12,10 @@ import {
   fetchUserOrganizations,
   updateOrganizationLogo,
 } from "@/lib/organizations/actions";
+import {
+  getSquareConnectOptions,
+  type SquareConnectOptions,
+} from "@/lib/square/actions";
 import { setSelectedOrganizationCookie } from "@/lib/organizations/setSelectedOrgCookie";
 import { uploadOrgLogo } from "@/lib/organizations/storage";
 import {
@@ -30,6 +34,9 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [selectedId, setSelectedId] = useState(defaultOrganizationId);
   const [loading, setLoading] = useState(true);
+  const [squareOptions, setSquareOptions] = useState<SquareConnectOptions | null>(
+    null,
+  );
 
   const refreshOrganizations = useCallback(async () => {
     const result = await fetchUserOrganizations();
@@ -71,6 +78,24 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     };
   }, [refreshOrganizations, router]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    getSquareConnectOptions()
+      .then((options) => {
+        if (!cancelled) setSquareOptions(options);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSquareOptions({ oauthEnabled: false, sandboxConnectEnabled: false });
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const selected = getOrganization(selectedId, organizations);
 
   async function selectOrg(id: string) {
@@ -82,7 +107,9 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     router.refresh();
   }
 
-  async function handleCreateOrganization(values: CreateOrganizationFormValues) {
+  async function handleCreateOrganization(
+    values: CreateOrganizationFormValues,
+  ): Promise<{ organizationId: string }> {
     const result = await createOrganization(values.name.trim());
     if ("error" in result) {
       throw new Error(result.error);
@@ -91,11 +118,7 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     const org = result.data.org;
 
     if (values.logoFile) {
-      const logoUrl = await uploadOrgLogo(org.id, values.logoFile);
-      const updateResult = await updateOrganizationLogo(org.id, logoUrl);
-      if ("error" in updateResult) {
-        throw new Error(updateResult.error);
-      }
+      await handleAttachLogo(org.id, values.logoFile);
     }
 
     const orgs = await refreshOrganizations();
@@ -104,6 +127,17 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     if (orgs.length === 0) {
       throw new Error("Organization was created but could not be loaded.");
     }
+
+    return { organizationId: org.id };
+  }
+
+  async function handleAttachLogo(organizationId: string, file: File) {
+    const logoUrl = await uploadOrgLogo(organizationId, file);
+    const updateResult = await updateOrganizationLogo(organizationId, logoUrl);
+    if ("error" in updateResult) {
+      throw new Error(updateResult.error);
+    }
+    await refreshOrganizations();
   }
 
   return (
@@ -200,6 +234,8 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onSave={handleCreateOrganization}
+        onAttachLogo={handleAttachLogo}
+        squareOptions={squareOptions}
       />
     </div>
   );

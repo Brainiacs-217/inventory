@@ -180,7 +180,7 @@ export function ProfitOverTimeChart({ data }: ProfitOverTimeChartProps) {
           <p className="text-sm font-semibold tracking-tight text-text-primary">
             Profit over time
           </p>
-          <p className="text-xs text-text-muted">Connect Square to see profit over time</p>
+          <p className="text-xs text-text-muted">Profit from the linked Square account</p>
         </div>
       </div>
       <div className="h-[calc(14rem+1in)] pl-4 pr-2 py-4 sm:pl-5 sm:pr-4">

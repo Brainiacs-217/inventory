@@ -132,7 +132,7 @@ async function saveSquareConnection(
 /** Link the sandbox access token from .env.local to the current organization. */
 export async function connectSandboxFromEnv(
   organizationId: string,
-): Promise<SaveResult> {
+): Promise<{ error: string } | { connectionId: string; merchantId: string }> {
   if (!isSquareSandboxTokenConfigured()) {
     return { error: "SQUARE_ACCESS_TOKEN is not configured in .env.local." };
   }
@@ -150,12 +150,15 @@ export async function connectSandboxFromEnv(
     // Keep default merchant id if the profile request fails.
   }
 
-  return saveSquareConnection(organizationId, {
+  const saved = await saveSquareConnection(organizationId, {
     merchantId,
     accessToken: getSquareAccessToken(),
     refreshToken: "",
     expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
   });
+
+  if ("error" in saved) return saved;
+  return { connectionId: saved.connectionId, merchantId };
 }
 
 export async function saveSquareConnectionFromOAuth(

@@ -1,9 +1,10 @@
 "use client";
 
-import { ImagePlus, X } from "lucide-react";
+import { Check, ImagePlus, Plug, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
+import { connectSandboxSquare, type SquareConnectOptions } from "@/lib/square/actions";
 import {
   createEmptyOrganizationFormValues,
   type CreateOrganizationFormValues,
@@ -12,7 +13,11 @@ import {
 type CreateOrganizationModalProps = {
   open: boolean;
   onClose: () => void;
-  onSave: (values: CreateOrganizationFormValues) => Promise<void>;
+  onSave: (
+    values: CreateOrganizationFormValues,
+  ) => Promise<{ organizationId: string }>;
+  onAttachLogo: (organizationId: string, file: File) => Promise<void>;
+  squareOptions: SquareConnectOptions | null;
 };
 
 type FormErrors = Partial<Record<keyof CreateOrganizationFormValues, string>>;
@@ -82,21 +87,44 @@ export function CreateOrganizationModal({
   open,
   onClose,
   onSave,
+  onAttachLogo,
+  squareOptions,
 }: CreateOrganizationModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const savedLogoFileRef = useRef<File | null>(null);
+  const createdOrganizationIdRef = useRef<string | null>(null);
   const [values, setValues] = useState<CreateOrganizationFormValues>(
     createEmptyOrganizationFormValues(),
   );
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [squareError, setSquareError] = useState<string | null>(null);
+  const [createdOrganizationId, setCreatedOrganizationId] = useState<string | null>(
+    null,
+  );
+  const [squareConnected, setSquareConnected] = useState(false);
+  const [merchantId, setMerchantId] = useState<string | null>(null);
+
+  const connectAvailable = Boolean(
+    squareOptions?.oauthEnabled || squareOptions?.sandboxConnectEnabled,
+  );
+  const busy = saving || connecting;
 
   useEffect(() => {
     if (!open) return;
+    savedLogoFileRef.current = null;
+    createdOrganizationIdRef.current = null;
     setValues(createEmptyOrganizationFormValues());
     setErrors({});
     setSaving(false);
+    setConnecting(false);
     setSubmitError(null);
+    setSquareError(null);
+    setCreatedOrganizationId(null);
+    setSquareConnected(false);
+    setMerchantId(null);
   }, [open]);
 
   function updateField<K extends keyof CreateOrganizationFormValues>(
@@ -161,11 +189,101 @@ export function CreateOrganizationModal({
     }));
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  async function ensureOrganization(): Promise<string> {
+    if (createdOrganizationIdRef.current) {
+      return createdOrganizationIdRef.current;
+    }
+
+    const { organizationId } = await onSave(values);
+    createdOrganizationIdRef.current = organizationId;
+    savedLogoFileRef.current = values.logoFile;
+    setCreatedOrganizationId(organizationId);
+    return organizationId;
+  }
+
+  async function finishAndClose(organizationId: string | null) {
+    if (
+      organizationId &&
+      values.logoFile &&
+      values.logoFile !== savedLogoFileRef.current
+    ) {
+      await onAttachLogo(organizationId, values.logoFile);
+    }
+    onClose();
+  }
+
+  async function handleConnectSquare() {
     const validationErrors = validateForm(values);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+      return;
+    }
+
+    if (!squareOptions || !connectAvailable) {
+      setSquareError("Square is not configured.");
+      return;
+    }
+
+    setConnecting(true);
+    setSquareError(null);
+    setSubmitError(null);
+
+    try {
+      const organizationId = await ensureOrganization();
+
+      if (squareOptions.oauthEnabled) {
+        window.location.assign("/api/square/connect");
+        return;
+      }
+
+      const result = await connectSandboxSquare(organizationId);
+      if ("error" in result) {
+        setSquareError(result.error);
+        return;
+      }
+
+      setMerchantId(result.merchantId);
+      setSquareConnected(true);
+    } catch (error) {
+      setSquareError(
+        error instanceof Error ? error.message : "Failed to connect Square.",
+      );
+    } finally {
+      setConnecting(false);
+    }
+  }
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+
+    if (createdOrganizationId) {
+      if (connectAvailable && !squareConnected) {
+        setSquareError("Connect Square before finishing.");
+        return;
+      }
+
+      setSaving(true);
+      setSubmitError(null);
+      try {
+        await finishAndClose(createdOrganizationId);
+      } catch (error) {
+        setSubmitError(
+          error instanceof Error ? error.message : "Failed to save organization.",
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    const validationErrors = validateForm(values);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    if (connectAvailable && !squareConnected) {
+      setSquareError("Connect Square before creating this organization.");
       return;
     }
 
@@ -173,8 +291,9 @@ export function CreateOrganizationModal({
     setSubmitError(null);
 
     try {
-      await onSave(values);
-      onClose();
+      const { organizationId } = await onSave(values);
+      savedLogoFileRef.current = values.logoFile;
+      await finishAndClose(organizationId);
     } catch (error) {
       setSubmitError(
         error instanceof Error ? error.message : "Failed to create organization.",
@@ -185,6 +304,20 @@ export function CreateOrganizationModal({
   }
 
   const logoInitial = values.name.trim().charAt(0).toUpperCase() || "—";
+  const squareStatus = squareConnected
+    ? "Connected"
+    : connecting
+      ? "Connecting…"
+      : "Not connected";
+  const squareDetail = !squareOptions
+    ? "Checking Square…"
+    : squareConnected
+      ? merchantId
+        ? `Merchant ${merchantId} is linked to this organization.`
+        : "This organization's Square account is linked."
+      : connectAvailable
+        ? "Link your Square account. Connecting saves this organization."
+        : "Add Square credentials to link an account.";
 
   const footer = (
     <div className="flex flex-col gap-2">
@@ -193,7 +326,7 @@ export function CreateOrganizationModal({
         <button
           type="button"
           onClick={onClose}
-          disabled={saving}
+          disabled={busy}
           className="rounded-sm border border-border/80 bg-surface px-3.5 py-1.5 text-sm font-medium text-text-secondary shadow-sm transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
         >
           Cancel
@@ -201,10 +334,14 @@ export function CreateOrganizationModal({
         <button
           type="submit"
           form="create-organization-form"
-          disabled={saving}
+          disabled={busy || !squareOptions}
           className="rounded-sm bg-accent px-3.5 py-1.5 text-sm font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
-          {saving ? "Creating…" : "Create organization"}
+          {saving
+            ? "Saving…"
+            : createdOrganizationId
+              ? "Done"
+              : "Create organization"}
         </button>
       </div>
     </div>
@@ -215,14 +352,14 @@ export function CreateOrganizationModal({
       open={open}
       onClose={onClose}
       title="Create organization"
-      description="Add a new organization to your account."
+      description="Add a new organization and link the Square account for it."
       footer={footer}
       size="md"
     >
       <form
         id="create-organization-form"
         onSubmit={handleSubmit}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-5"
       >
         <Field label="Organization name" required error={errors.name}>
           <input
@@ -232,94 +369,106 @@ export function CreateOrganizationModal({
             onChange={(event) => updateField("name", event.target.value)}
             className={inputClassName}
             autoFocus
-            disabled={saving}
+            disabled={busy || createdOrganizationId != null}
           />
         </Field>
 
         <div className="flex flex-col gap-1.5">
-          <span className={labelClassName}>Logo</span>
+          <span className={labelClassName}>Square</span>
+          <div className="flex flex-wrap items-center gap-3 rounded-sm border border-border/80 bg-surface px-3 py-2">
+            <div
+              className={`flex size-9 shrink-0 items-center justify-center rounded-sm border border-border/80 ${
+                squareConnected ? "bg-success/10 text-success" : "bg-surface-muted text-text-muted"
+              }`}
+            >
+              {squareConnected ? (
+                <Check aria-hidden className="size-4" strokeWidth={2} />
+              ) : (
+                <Plug aria-hidden className="size-4" strokeWidth={1.75} />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium tracking-tight text-text-primary">
+                {squareStatus}
+              </p>
+              <p className="text-xs leading-relaxed text-text-muted">{squareDetail}</p>
+            </div>
+            {squareConnected ? (
+              <span className="shrink-0 text-xs font-medium text-success">Linked</span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleConnectSquare}
+                disabled={busy || !squareOptions || !connectAvailable}
+                className="inline-flex shrink-0 items-center rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {connecting ? "Connecting…" : "Connect"}
+              </button>
+            )}
+          </div>
+          {squareError && <p className="text-xs text-error">{squareError}</p>}
+        </div>
 
-          <div className="overflow-hidden rounded-sm border border-border/80 bg-surface">
-            <div className="grid grid-cols-[5.5rem_1fr] items-stretch sm:grid-cols-[6.5rem_1fr]">
+        <div className="flex flex-col gap-1.5">
+          <span className={labelClassName}>Logo</span>
+          <div className="flex flex-wrap items-center gap-3 rounded-sm border border-border/80 bg-surface px-3 py-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label={values.logoSrc ? "Change logo" : "Upload logo"}
+              disabled={busy}
+              className="group relative flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-sm border border-border/80 bg-surface-muted/40 transition-colors hover:bg-surface-muted/70 disabled:opacity-50"
+            >
+              {values.logoSrc ? (
+                <img src={values.logoSrc} alt="" className="size-8 object-contain" />
+              ) : (
+                <span className="text-sm font-medium tracking-tight text-text-muted/70">
+                  {logoInitial}
+                </span>
+              )}
+            </button>
+
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium tracking-tight text-text-primary">
+                {values.logoSrc ? "Logo selected" : "Optional mark"}
+              </p>
+              <p className="text-xs leading-relaxed text-text-muted">
+                Square image recommended. PNG, JPG, WebP, or SVG · 2 MB.
+              </p>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_LOGO_TYPES.join(",")}
+                onChange={handleLogoChange}
+                className="sr-only"
+                disabled={busy}
+              />
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                aria-label={values.logoSrc ? "Change logo" : "Upload logo"}
-                disabled={saving}
-                className="group relative flex h-full min-h-full items-center justify-center self-stretch border-r border-border/80 bg-surface-muted/40 transition-colors hover:bg-surface-muted/70 disabled:opacity-50"
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
               >
-                {values.logoSrc ? (
-                  <img
-                    src={values.logoSrc}
-                    alt=""
-                    className="h-[70%] w-[70%] object-contain"
-                  />
-                ) : (
-                  <span className="text-xl font-medium tracking-tight text-text-muted/70 transition-colors group-hover:text-text-muted">
-                    {logoInitial}
-                  </span>
-                )}
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-foreground/0 px-1 py-1.5 text-center text-[9px] font-medium uppercase tracking-[0.12em] text-transparent transition-colors group-hover:bg-foreground/5 group-hover:text-text-muted">
-                  {values.logoSrc ? "Change" : "Upload"}
-                </span>
+                <ImagePlus aria-hidden className="size-3.5" strokeWidth={1.75} />
+                {values.logoSrc ? "Replace" : "Choose file"}
               </button>
-
-              <div className="flex min-w-0 flex-col">
-                <div className="flex flex-1 flex-col justify-center gap-0.5 px-4 py-3">
-                  <p className="text-sm font-medium tracking-tight text-text-primary">
-                    {values.logoSrc ? "Logo selected" : "Optional mark"}
-                  </p>
-                  <p className="text-xs leading-relaxed text-text-muted">
-                    Square image recommended. Appears in the sidebar and org
-                    switcher.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-[1fr_auto] items-end gap-3 border-t border-border/80 px-4 py-3">
-                  <p className="text-[11px] leading-relaxed text-text-muted">
-                    PNG · JPG · WebP · SVG
-                    <br />
-                    Max 2 MB
-                  </p>
-
-                  <div className="flex shrink-0 items-center gap-2">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept={ACCEPTED_LOGO_TYPES.join(",")}
-                      onChange={handleLogoChange}
-                      className="sr-only"
-                      disabled={saving}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={saving}
-                      className="inline-flex items-center gap-1.5 rounded-sm border border-border/80 bg-surface px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
-                    >
-                      <ImagePlus aria-hidden className="size-3.5" strokeWidth={1.75} />
-                      {values.logoSrc ? "Replace" : "Choose file"}
-                    </button>
-                    {values.logoSrc && (
-                      <button
-                        type="button"
-                        onClick={handleRemoveLogo}
-                        disabled={saving}
-                        aria-label="Remove logo"
-                        className="inline-flex size-7 items-center justify-center rounded-sm border border-border/80 text-text-muted transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
-                      >
-                        <X aria-hidden className="size-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
+              {values.logoSrc && (
+                <button
+                  type="button"
+                  onClick={handleRemoveLogo}
+                  disabled={busy}
+                  aria-label="Remove logo"
+                  className="inline-flex size-7 items-center justify-center rounded-sm border border-border/80 text-text-muted transition-colors hover:border-text-muted/30 hover:text-text-primary disabled:opacity-50"
+                >
+                  <X aria-hidden className="size-3.5" />
+                </button>
+              )}
             </div>
           </div>
-
-          {errors.logoSrc && (
-            <p className="text-xs text-error">{errors.logoSrc}</p>
-          )}
+          {errors.logoSrc && <p className="text-xs text-error">{errors.logoSrc}</p>}
         </div>
       </form>
     </Modal>
