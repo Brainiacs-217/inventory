@@ -46,9 +46,30 @@
   animation: sheet-rise 240ms ease-out;
 }
 
+@media (max-width: 767px) {
+  .nav-drawer {
+    transition:
+      transform 240ms ease-out,
+      visibility 0s linear 0s;
+  }
+
+  .nav-drawer[data-open="false"] {
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition:
+      transform 240ms ease-out,
+      visibility 0s linear 240ms;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet-rise {
     animation: none;
+  }
+
+  .nav-drawer,
+  .nav-drawer[data-open="false"] {
+    transition: none;
   }
 }
 

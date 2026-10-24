@@ -34,14 +34,16 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-0 w-full flex-1 overflow-hidden bg-white">
-      {mobileNavOpen ? (
-        <button
-          type="button"
-          aria-label="Close navigation"
-          className="fixed inset-0 z-40 bg-foreground/25 md:hidden"
-          onClick={() => setMobileNavOpen(false)}
-        />
-      ) : null}
+      <button
+        type="button"
+        aria-label="Close navigation"
+        aria-hidden={!mobileNavOpen}
+        tabIndex={mobileNavOpen ? 0 : -1}
+        className={`fixed inset-0 z-40 bg-foreground/25 transition-opacity duration-[240ms] ease-out motion-reduce:transition-none md:hidden ${
+          mobileNavOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setMobileNavOpen(false)}
+      />
       <AppSidebar
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}

@@ -365,7 +365,7 @@ function MobileSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby="batch-sheet-title"
-        className="app-safe-bottom relative flex max-h-[85dvh] w-full flex-col rounded-t-2xl border border-border/80 bg-surface"
+        className="sheet-rise app-safe-bottom relative flex max-h-[85dvh] w-full flex-col rounded-t-2xl border border-border/80 bg-surface"
       >
         <div className="flex items-start justify-between gap-3 border-b border-border/80 px-4 py-3.5">
           <h2

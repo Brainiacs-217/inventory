@@ -31,6 +31,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(false);
   const iconOnly = collapsed && !mobileOpen;
 
   useEffect(() => {
@@ -38,6 +39,14 @@ export function AppSidebar({
     if (stored === "true") {
       setCollapsed(true);
     }
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia("(width < 48rem)");
+    const update = () => setIsNarrow(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
   }, []);
 
   function toggleCollapsed() {
@@ -50,11 +59,11 @@ export function AppSidebar({
 
   return (
     <aside
-      className={`flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-60 ${
-        mobileOpen ? "max-md:flex" : "max-md:hidden"
-      } md:flex md:shrink-0 md:transition-[width] ${
+      className={`nav-drawer flex flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:w-60 md:shrink-0 md:transition-[width] ${
         iconOnly ? "md:w-16" : "md:w-60"
       }`}
+      data-open={mobileOpen ? "true" : "false"}
+      inert={isNarrow && !mobileOpen}
       role={mobileOpen ? "dialog" : undefined}
       aria-modal={mobileOpen ? true : undefined}
       aria-label={mobileOpen ? "Navigation" : undefined}

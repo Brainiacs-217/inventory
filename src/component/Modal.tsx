@@ -123,7 +123,7 @@ export function Modal({
         aria-labelledby="modal-title"
         className={`flex w-full ${sizeClassNames[size]} flex-col overflow-hidden bg-surface ${
           mobileSheet
-            ? "absolute inset-x-0 top-0 h-dvh max-h-none rounded-none border-0 shadow-none md:relative md:h-auto md:max-h-[92vh] md:rounded-xl md:border md:border-border/80 md:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]"
+            ? "sheet-rise absolute inset-x-0 top-0 h-dvh max-h-none rounded-none border-0 shadow-none md:relative md:h-auto md:max-h-[92vh] md:rounded-xl md:border md:border-border/80 md:shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]"
             : "relative max-h-[92vh] rounded-xl border border-border/80 shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18)]"
         }`}
         onClick={(event) => event.stopPropagation()}
