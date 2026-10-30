@@ -145,16 +145,13 @@ export function RecipesMobileList({
                       <span className="block truncate text-base font-medium text-text-primary">
                         {recipe.name}
                       </span>
-                      <span className="mt-0.5 block truncate text-[13px] font-normal leading-5 text-text-muted">
-                        {itemLabel(recipe.ingredientCount)}
-                      </span>
                     </span>
                     <span className="flex shrink-0 flex-col items-end">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                        COG
-                      </span>
                       <span className="text-[13px] font-medium text-text-primary tabular-nums">
                         {formatOptionalCurrency(recipe.cog)}
+                      </span>
+                      <span className="mt-0.5 text-right text-[13px] font-normal leading-5 text-text-muted">
+                        {itemLabel(recipe.ingredientCount)}
                       </span>
                     </span>
                   </button>

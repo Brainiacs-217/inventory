@@ -5,10 +5,20 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
 import { connectSandboxSquare, type SquareConnectOptions } from "@/lib/square/actions";
+import { SQUARE_OAUTH_NEXT_CREATE_ORG } from "@/lib/square/constants";
 import {
   createEmptyOrganizationFormValues,
   type CreateOrganizationFormValues,
 } from "@/types/organization";
+
+export type CreateOrganizationResume = {
+  organizationId: string;
+  name: string;
+  logoSrc?: string;
+  squareConnected: boolean;
+  merchantId: string | null;
+  squareError: string | null;
+};
 
 type CreateOrganizationModalProps = {
   open: boolean;
@@ -18,6 +28,7 @@ type CreateOrganizationModalProps = {
   ) => Promise<{ organizationId: string }>;
   onAttachLogo: (organizationId: string, file: File) => Promise<void>;
   squareOptions: SquareConnectOptions | null;
+  resume?: CreateOrganizationResume | null;
 };
 
 type FormErrors = Partial<Record<keyof CreateOrganizationFormValues, string>>;
@@ -89,6 +100,7 @@ export function CreateOrganizationModal({
   onSave,
   onAttachLogo,
   squareOptions,
+  resume = null,
 }: CreateOrganizationModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const savedLogoFileRef = useRef<File | null>(null);
@@ -115,6 +127,27 @@ export function CreateOrganizationModal({
 
   useEffect(() => {
     if (!open) return;
+
+    if (resume) {
+      savedLogoFileRef.current = null;
+      createdOrganizationIdRef.current = resume.organizationId;
+      setValues({
+        ...createEmptyOrganizationFormValues(),
+        name: resume.name,
+        logoSrc: resume.logoSrc ?? null,
+      });
+      setErrors({});
+      setSaving(false);
+      setConnecting(false);
+      setSubmitError(null);
+      setSquareError(resume.squareError);
+      setCreatedOrganizationId(resume.organizationId);
+      setSquareConnected(resume.squareConnected);
+      setMerchantId(resume.merchantId);
+      setGustoConnected(false);
+      return;
+    }
+
     savedLogoFileRef.current = null;
     createdOrganizationIdRef.current = null;
     setValues(createEmptyOrganizationFormValues());
@@ -127,7 +160,7 @@ export function CreateOrganizationModal({
     setSquareConnected(false);
     setMerchantId(null);
     setGustoConnected(false);
-  }, [open]);
+  }, [open, resume]);
 
   function updateField<K extends keyof CreateOrganizationFormValues>(
     key: K,
@@ -234,7 +267,9 @@ export function CreateOrganizationModal({
       const organizationId = await ensureOrganization();
 
       if (squareOptions.oauthEnabled) {
-        window.location.assign("/api/square/connect");
+        window.location.assign(
+          `/api/square/connect?next=${SQUARE_OAUTH_NEXT_CREATE_ORG}`,
+        );
         return;
       }
 

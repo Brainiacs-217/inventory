@@ -2,10 +2,13 @@
 
 import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AddOrganizationButton } from "@/component/AddOrganizationButton";
-import { CreateOrganizationModal } from "@/component/CreateOrganizationModal";
+import {
+  CreateOrganizationModal,
+  type CreateOrganizationResume,
+} from "@/component/CreateOrganizationModal";
 import { OrgLogo } from "@/component/OrgLogo";
 import {
   createOrganization,
@@ -13,9 +16,11 @@ import {
   updateOrganizationLogo,
 } from "@/lib/organizations/actions";
 import {
+  getOrganizationSquareStatus,
   getSquareConnectOptions,
   type SquareConnectOptions,
 } from "@/lib/square/actions";
+import { formatSquareOAuthError } from "@/lib/square/constants";
 import { setSelectedOrganizationCookie } from "@/lib/organizations/setSelectedOrgCookie";
 import { uploadOrgLogo } from "@/lib/organizations/storage";
 import {
@@ -37,6 +42,10 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   const [squareOptions, setSquareOptions] = useState<SquareConnectOptions | null>(
     null,
   );
+  const [createResume, setCreateResume] = useState<CreateOrganizationResume | null>(
+    null,
+  );
+  const resumedCreateOrg = useRef(false);
 
   const refreshOrganizations = useCallback(async () => {
     const result = await fetchUserOrganizations();
@@ -48,6 +57,39 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     setOrganizations(orgs);
     return orgs;
   }, []);
+
+  useEffect(() => {
+    if (loading || resumedCreateOrg.current) return;
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("resume_create_org") !== "1") return;
+
+    const org =
+      organizations.find((item) => item.id === selectedId) ?? organizations[0];
+    if (!org) return;
+
+    resumedCreateOrg.current = true;
+    const squareError = params.get("square_error");
+    const markedConnected = params.get("square_connected") === "1";
+
+    void getOrganizationSquareStatus(org.id).then((status) => {
+      setCreateResume({
+        organizationId: org.id,
+        name: org.name,
+        logoSrc: org.logoSrc,
+        squareConnected: markedConnected || status.connected,
+        merchantId: status.merchantId,
+        squareError: squareError ? formatSquareOAuthError(squareError) : null,
+      });
+      setCreateOpen(true);
+
+      params.delete("resume_create_org");
+      params.delete("square_connected");
+      params.delete("square_error");
+      const next = params.toString();
+      router.replace(next ? `${window.location.pathname}?${next}` : window.location.pathname);
+    });
+  }, [loading, organizations, router, selectedId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -232,10 +274,14 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
 
       <CreateOrganizationModal
         open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        onClose={() => {
+          setCreateOpen(false);
+          setCreateResume(null);
+        }}
         onSave={handleCreateOrganization}
         onAttachLogo={handleAttachLogo}
         squareOptions={squareOptions}
+        resume={createResume}
       />
     </div>
   );

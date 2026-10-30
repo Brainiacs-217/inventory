@@ -150,18 +150,15 @@ export function BatchesMobileList({
                       <span className="block truncate text-base font-medium text-text-primary">
                         {batch.name}
                       </span>
-                      <span className="mt-0.5 block truncate text-[13px] font-normal leading-5 text-text-muted">
+                    </span>
+                    <span className="flex shrink-0 flex-col items-end">
+                      <span className="text-[13px] font-medium text-text-primary tabular-nums">
+                        {formatOptionalCurrency(batch.totalCost)}
+                      </span>
+                      <span className="mt-0.5 text-right text-[13px] font-normal leading-5 text-text-muted">
                         {itemLabel(batch.ingredientCount)}
                         {" · "}
                         {formatBatchYield(batch.yieldQuantity, batch.yieldUnitSymbol)}
-                      </span>
-                    </span>
-                    <span className="flex shrink-0 flex-col items-end">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-                        Cost
-                      </span>
-                      <span className="text-[13px] font-medium text-text-primary tabular-nums">
-                        {formatOptionalCurrency(batch.totalCost)}
                       </span>
                     </span>
                   </button>

@@ -3,6 +3,7 @@
 import {
   connectSandboxFromEnv,
   disconnectSquareConnection as disconnectConnection,
+  getSquareConnection,
 } from "@/lib/square/connection";
 import {
   isSquareOAuthConfigured,
@@ -29,6 +30,16 @@ export async function connectSandboxSquare(
     return { error: result.error };
   }
   return { merchantId: result.merchantId };
+}
+
+export async function getOrganizationSquareStatus(
+  organizationId: string,
+): Promise<{ connected: boolean; merchantId: string | null }> {
+  const connection = await getSquareConnection(organizationId);
+  if (!connection) {
+    return { connected: false, merchantId: null };
+  }
+  return { connected: true, merchantId: connection.merchantId };
 }
 
 export async function disconnectSquare(

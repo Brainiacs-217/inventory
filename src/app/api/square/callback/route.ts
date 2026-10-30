@@ -3,10 +3,27 @@ import { NextResponse } from "next/server";
 
 import { getSelectedOrganizationId } from "@/lib/organizations/selectedOrg";
 import { saveSquareConnectionFromOAuth } from "@/lib/square/connection";
-import { SQUARE_OAUTH_STATE_COOKIE } from "@/lib/square/constants";
+import {
+  SQUARE_OAUTH_NEXT_COOKIE,
+  SQUARE_OAUTH_NEXT_CREATE_ORG,
+  SQUARE_OAUTH_ORG_COOKIE,
+  SQUARE_OAUTH_STATE_COOKIE,
+} from "@/lib/square/constants";
 import { isSquareOAuthConfigured } from "@/lib/square/config";
 import { exchangeSquareAuthorizationCode } from "@/lib/square/oauth";
 import { createClient } from "@/lib/supabase/server";
+
+function dashboardRedirect(
+  origin: string,
+  params: Record<string, string>,
+  resumeCreateOrganization: boolean,
+) {
+  const search = new URLSearchParams(params);
+  if (resumeCreateOrganization) {
+    search.set("resume_create_org", "1");
+  }
+  return NextResponse.redirect(`${origin}/dashboard?${search.toString()}`);
+}
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -14,22 +31,38 @@ export async function GET(request: Request) {
   const state = searchParams.get("state");
   const error = searchParams.get("error");
 
+  const cookieStore = await cookies();
+  const resumeCreateOrganization =
+    cookieStore.get(SQUARE_OAUTH_NEXT_COOKIE)?.value === SQUARE_OAUTH_NEXT_CREATE_ORG;
+  const oauthOrganizationId = cookieStore.get(SQUARE_OAUTH_ORG_COOKIE)?.value;
+  const storedState = cookieStore.get(SQUARE_OAUTH_STATE_COOKIE)?.value;
+
+  cookieStore.delete(SQUARE_OAUTH_STATE_COOKIE);
+  cookieStore.delete(SQUARE_OAUTH_ORG_COOKIE);
+  cookieStore.delete(SQUARE_OAUTH_NEXT_COOKIE);
+
   if (error) {
-    return NextResponse.redirect(
-      `${origin}/dashboard?square_error=${encodeURIComponent(error)}`,
+    return dashboardRedirect(
+      origin,
+      { square_error: error },
+      resumeCreateOrganization,
     );
   }
 
   if (!isSquareOAuthConfigured() || !code || !state) {
-    return NextResponse.redirect(`${origin}/dashboard?square_error=invalid_request`);
+    return dashboardRedirect(
+      origin,
+      { square_error: "invalid_request" },
+      resumeCreateOrganization,
+    );
   }
 
-  const cookieStore = await cookies();
-  const storedState = cookieStore.get(SQUARE_OAUTH_STATE_COOKIE)?.value;
-  cookieStore.delete(SQUARE_OAUTH_STATE_COOKIE);
-
   if (!storedState || storedState !== state) {
-    return NextResponse.redirect(`${origin}/dashboard?square_error=invalid_state`);
+    return dashboardRedirect(
+      origin,
+      { square_error: "invalid_state" },
+      resumeCreateOrganization,
+    );
   }
 
   const supabase = await createClient();
@@ -41,9 +74,13 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=auth`);
   }
 
-  const organizationId = await getSelectedOrganizationId();
+  const organizationId = oauthOrganizationId || (await getSelectedOrganizationId());
   if (!organizationId) {
-    return NextResponse.redirect(`${origin}/dashboard?square_error=no_organization`);
+    return dashboardRedirect(
+      origin,
+      { square_error: "no_organization" },
+      resumeCreateOrganization,
+    );
   }
 
   try {
@@ -66,13 +103,23 @@ export async function GET(request: Request) {
     });
 
     if ("error" in result) {
-      return NextResponse.redirect(
-        `${origin}/dashboard?square_error=${encodeURIComponent(result.error)}`,
+      return dashboardRedirect(
+        origin,
+        { square_error: result.error },
+        resumeCreateOrganization,
       );
     }
 
-    return NextResponse.redirect(`${origin}/dashboard?square_connected=1`);
+    return dashboardRedirect(
+      origin,
+      { square_connected: "1" },
+      resumeCreateOrganization,
+    );
   } catch {
-    return NextResponse.redirect(`${origin}/dashboard?square_error=token_exchange`);
+    return dashboardRedirect(
+      origin,
+      { square_error: "token_exchange" },
+      resumeCreateOrganization,
+    );
   }
 }
