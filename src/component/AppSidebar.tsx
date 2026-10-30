@@ -1,38 +1,102 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { NavIcon } from "@/component/NavIcon";
 import { OrgSwitcher } from "@/component/OrgSwitcher";
-import { isNavItemActive, navItems } from "@/lib/routes";
+import { isNavItemActive, navItems, type NavItem } from "@/lib/routes";
 
 const SIDEBAR_COLLAPSED_KEY = "sidebar-collapsed";
 
-const linkClass = (active: boolean, collapsed: boolean) =>
-  `flex items-center rounded-md py-2 text-sm transition-colors ${
+const linkClass = (active: boolean, collapsed: boolean, highlighted: boolean) =>
+  `relative z-10 flex items-center rounded-md py-2 text-sm transition-colors duration-200 ease-out motion-reduce:transition-none ${
     collapsed ? "justify-center px-2" : "gap-2.5 px-3"
   } ${
     active
-      ? "bg-sidebar-active font-semibold text-sidebar-foreground"
+      ? `font-semibold text-sidebar-foreground ${highlighted ? "" : "bg-sidebar-active"}`
       : "text-sidebar-muted hover:bg-sidebar-active/50 hover:text-sidebar-foreground"
   }`;
 
 type AppSidebarProps = {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  pendingHref?: string | null;
+  onPendingChange?: (href: string, pending: boolean) => void;
 };
+
+function NavLinkStatus({
+  href,
+  onPendingChange,
+}: {
+  href: string;
+  onPendingChange?: (href: string, pending: boolean) => void;
+}) {
+  const { pending } = useLinkStatus();
+
+  useLayoutEffect(() => {
+    onPendingChange?.(href, pending);
+  }, [href, onPendingChange, pending]);
+
+  return null;
+}
+
+function SidebarLink({
+  item,
+  active,
+  collapsed,
+  highlighted,
+  onNavigate,
+  onPendingChange,
+  linkRef,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+  highlighted: boolean;
+  onNavigate?: () => void;
+  onPendingChange?: (href: string, pending: boolean) => void;
+  linkRef: (node: HTMLAnchorElement | null) => void;
+}) {
+  return (
+    <Link
+      ref={linkRef}
+      href={item.href}
+      scroll={false}
+      title={collapsed ? item.label : undefined}
+      aria-current={active ? "page" : undefined}
+      className={linkClass(active, collapsed, highlighted)}
+      onNavigate={onNavigate}
+    >
+      <NavLinkStatus href={item.href} onPendingChange={onPendingChange} />
+      <NavIcon icon={item.icon} />
+      {!collapsed && <span className="truncate">{item.label}</span>}
+    </Link>
+  );
+}
 
 export function AppSidebar({
   mobileOpen = false,
   onMobileClose,
+  pendingHref = null,
+  onPendingChange,
 }: AppSidebarProps) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [isNarrow, setIsNarrow] = useState(false);
+  const [indicator, setIndicator] = useState<{
+    top: number;
+    height: number;
+  } | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const iconOnly = collapsed && !mobileOpen;
+  const activeHref =
+    pendingHref ??
+    navItems.find((item) => isNavItemActive(pathname, item.href))?.href ??
+    null;
 
   useEffect(() => {
     const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
@@ -48,6 +112,32 @@ export function AppSidebar({
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const measure = () => {
+      const link = activeHref ? linkRefs.current[activeHref] : null;
+      if (!link) {
+        setIndicator(null);
+        return;
+      }
+
+      const top = link.offsetTop;
+      const height = link.offsetHeight;
+      setIndicator((current) =>
+        current && current.top === top && current.height === height
+          ? current
+          : { top, height },
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [activeHref, iconOnly, mobileOpen]);
 
   function toggleCollapsed() {
     setCollapsed((prev) => {
@@ -71,23 +161,37 @@ export function AppSidebar({
       <OrgSwitcher collapsed={iconOnly} />
 
       <nav
-        className={`flex flex-1 flex-col gap-1 py-4 ${iconOnly ? "px-2" : "px-3"}`}
+        className={`flex flex-1 flex-col py-4 ${iconOnly ? "px-2" : "px-3"}`}
       >
-        {navItems.map((item) => {
-          const active = isNavItemActive(pathname, item.href);
+        <div ref={listRef} className="relative flex flex-col gap-1">
+          {indicator ? (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 z-0 rounded-md bg-sidebar-active transition-[top,height] duration-300 ease-out motion-reduce:transition-none"
+              style={{ top: indicator.top, height: indicator.height }}
+            />
+          ) : null}
+          {navItems.map((item) => {
+            const active = pendingHref
+              ? item.href === pendingHref
+              : isNavItemActive(pathname, item.href);
 
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              title={iconOnly ? item.label : undefined}
-              className={linkClass(active, iconOnly)}
-            >
-              <NavIcon icon={item.icon} />
-              {!iconOnly && <span className="truncate">{item.label}</span>}
-            </Link>
-          );
-        })}
+            return (
+              <SidebarLink
+                key={item.href}
+                item={item}
+                active={active}
+                collapsed={iconOnly}
+                highlighted={indicator != null}
+                onNavigate={onMobileClose}
+                onPendingChange={onPendingChange}
+                linkRef={(node) => {
+                  linkRefs.current[item.href] = node;
+                }}
+              />
+            );
+          })}
+        </div>
       </nav>
 
       {mobileOpen ? (

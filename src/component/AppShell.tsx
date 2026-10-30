@@ -1,14 +1,27 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { AppHeader } from "@/component/AppHeader";
 import { AppSidebar } from "@/component/AppSidebar";
+import { RouteLoading } from "@/component/RouteLoading";
+import { getListRoute } from "@/lib/routes";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  const handlePendingChange = useCallback((href: string, pending: boolean) => {
+    setPendingHref((current) => {
+      if (pending) return href;
+      return current === href ? null : current;
+    });
+  }, []);
+
+  const navigatingAway = pendingHref != null && pendingHref !== pathname;
+  const loadingKind = navigatingAway ? getListRoute(pendingHref) : null;
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -37,9 +50,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       <AppSidebar
         mobileOpen={mobileNavOpen}
         onMobileClose={() => setMobileNavOpen(false)}
+        pendingHref={pendingHref}
+        onPendingChange={handlePendingChange}
       />
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
         <AppHeader
+          path={pendingHref ?? pathname}
           mobileNavOpen={mobileNavOpen}
           onMobileNavOpen={() => setMobileNavOpen(true)}
         />
@@ -53,8 +69,25 @@ export function AppShell({ children }: { children: ReactNode }) {
           }`}
           onClick={() => setMobileNavOpen(false)}
         />
-        <main className="flex min-h-0 flex-1 flex-col overflow-hidden bg-background p-3 md:p-page">
-          {children}
+        <main className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-background">
+          <div
+            inert={loadingKind != null}
+            aria-hidden={loadingKind != null}
+            className={`flex min-h-0 flex-1 flex-col overflow-hidden p-3 transition-opacity duration-200 ease-out motion-reduce:transition-none md:p-page ${
+              loadingKind != null
+                ? "invisible"
+                : navigatingAway
+                  ? "opacity-60"
+                  : "opacity-100"
+            }`}
+          >
+            {children}
+          </div>
+          {loadingKind ? (
+            <div className="absolute inset-0 flex min-h-0 flex-col overflow-hidden p-3 md:p-page">
+              <RouteLoading route={loadingKind} />
+            </div>
+          ) : null}
         </main>
       </div>
     </div>

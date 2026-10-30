@@ -7,7 +7,7 @@ import { SquareOAuthNotice } from "@/component/SquareOAuthNotice";
 
 export default function DashboardPage() {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
+    <div className="page-enter flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
       <Suspense fallback={null}>
         <SquareOAuthNotice />
       </Suspense>

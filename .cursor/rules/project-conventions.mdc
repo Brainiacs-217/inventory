@@ -25,13 +25,13 @@ src/
 ```
 
 - Use `@/` path aliases — never deep relative imports like `../../`
-- Do not add code outside `src/` except config files (`proxy.ts`, `next.config.ts`, etc.)
+- Do not add code outside `src/` except config files (`next.config.ts`, etc.)
 
 ## Supabase
 
 - Browser client: `@/lib/supabase/client` — Client Components only
 - Server client: `@/lib/supabase/server` — Server Components, Server Actions, API routes
-- Session refresh: `proxy.ts` at project root (Next.js 16; not `middleware.ts`)
+- Session refresh: `src/proxy.ts`, next to `src/app` (Next.js 16; not `middleware.ts`). A root `proxy.ts` is not loaded when the app lives in `src/`.
 - Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - Never expose `service_role` or secret keys in client code
 - Use `supabase.auth.getUser()` for auth checks, not `getSession()`

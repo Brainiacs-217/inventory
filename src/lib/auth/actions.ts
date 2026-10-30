@@ -9,6 +9,27 @@ type AuthActionResult = {
   error?: string;
 };
 
+export async function signInWithEmail(
+  email: string,
+  password: string,
+): Promise<AuthActionResult> {
+  if (!isSupabaseConfigured()) {
+    return { error: "Supabase is not configured. Check your environment variables." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  redirect("/dashboard");
+}
+
 export async function signUpWithEmail(
   email: string,
   password: string,

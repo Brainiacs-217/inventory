@@ -10,6 +10,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // The callback still holds the one-time sign-in code. Refreshing here can
+  // clear that cookie before it is exchanged for a session.
+  if (request.nextUrl.pathname.startsWith("/auth/")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -40,23 +46,33 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data } = await supabase.auth.getClaims();
+  const isSignedIn = Boolean(data?.claims);
   const { pathname } = request.nextUrl;
 
-  if (!user && isAppPath(pathname)) {
+  if (!isSignedIn && isAppPath(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    return NextResponse.redirect(url);
+    return redirectWithSession(supabaseResponse, url);
   }
 
-  if (user && isPublicPath(pathname)) {
+  if (isSignedIn && (pathname === "/" || isPublicPath(pathname))) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
+    return redirectWithSession(supabaseResponse, url);
   }
 
   return supabaseResponse;
+}
+
+function redirectWithSession(sessionResponse: NextResponse, url: URL) {
+  const redirectResponse = NextResponse.redirect(url);
+  sessionResponse.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+  for (const header of ["cache-control", "expires", "pragma"]) {
+    const value = sessionResponse.headers.get(header);
+    if (value) redirectResponse.headers.set(header, value);
+  }
+  return redirectResponse;
 }

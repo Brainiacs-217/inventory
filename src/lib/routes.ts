@@ -56,3 +56,17 @@ export function getPageTitle(pathname: string): string {
     .sort((a, b) => b.href.length - a.href.length)[0];
   return match?.label ?? "Inventory";
 }
+
+export type ListRoute = "items" | "batches" | "recipes" | "inventory";
+
+export function getListRoute(href: string): ListRoute | null {
+  switch (href) {
+    case "/items":
+    case "/batches":
+    case "/recipes":
+    case "/inventory":
+      return href.slice(1) as ListRoute;
+    default:
+      return null;
+  }
+}

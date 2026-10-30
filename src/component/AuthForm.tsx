@@ -1,13 +1,16 @@
 "use client";
 
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type PointerEvent } from "react";
 
+import { signInWithEmail, signUpWithEmail } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/client";
-import { signUpWithEmail } from "@/lib/auth/actions";
 
 type AuthMode = "login" | "signup";
+
+type AuthFormProps = {
+  initialError?: string | null;
+};
 
 function keepPasswordInputFocused(event: PointerEvent<HTMLButtonElement>) {
   if (event.pointerType === "mouse") {
@@ -38,15 +41,14 @@ function GoogleIcon() {
   );
 }
 
-export function AuthForm() {
-  const router = useRouter();
+export function AuthForm({ initialError = null }: AuthFormProps) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -61,22 +63,13 @@ export function AuthForm() {
       return;
     }
 
-    const supabase = createClient();
-
     if (mode === "login") {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error: signInError } = await signInWithEmail(email, password);
 
       if (signInError) {
-        setError(signInError.message);
+        setError(signInError);
         setLoading(false);
-        return;
       }
-
-      router.push("/dashboard");
-      router.refresh();
       return;
     }
 

@@ -179,7 +179,7 @@ export function InventoryPage({
   }, [catalogItems, draftsByRoom, organizationId, rooms, router, selectedRoomId]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="page-enter flex min-h-0 flex-1 flex-col gap-4">
       <div className="inline-flex w-fit rounded-lg border border-border/80 bg-surface p-1 shadow-sm">
         {tabs.map((tab) => (
           <button
