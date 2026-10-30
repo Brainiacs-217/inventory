@@ -268,7 +268,7 @@ export function CreateOrganizationModal({
 
       if (squareOptions.oauthEnabled) {
         window.location.assign(
-          `/api/square/connect?next=${SQUARE_OAUTH_NEXT_CREATE_ORG}`,
+          `/api/square/oauth/connect?next=${SQUARE_OAUTH_NEXT_CREATE_ORG}`,
         );
         return;
       }
