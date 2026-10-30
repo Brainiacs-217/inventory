@@ -31,7 +31,7 @@ export function AppHeader({
           >
             <Menu className="size-6" strokeWidth={2} />
           </button>
-          <h2 className="hidden h-10 items-center text-sm font-semibold text-text-primary md:flex">
+          <h2 className="flex h-10 items-center text-sm font-semibold text-text-primary">
             {title}
           </h2>
         </div>
