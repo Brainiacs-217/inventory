@@ -267,9 +267,11 @@ export function CreateOrganizationModal({
       const organizationId = await ensureOrganization();
 
       if (squareOptions.oauthEnabled) {
-        window.location.assign(
-          `/api/square/oauth/connect?next=${SQUARE_OAUTH_NEXT_CREATE_ORG}`,
-        );
+        const params = new URLSearchParams({
+          next: SQUARE_OAUTH_NEXT_CREATE_ORG,
+          organizationId,
+        });
+        window.location.assign(`/api/square/oauth/connect?${params.toString()}`);
         return;
       }
 

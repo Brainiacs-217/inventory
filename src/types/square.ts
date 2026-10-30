@@ -20,7 +20,7 @@ export type SquareOAuthTokenResponse = {
   errors?: SquareOAuthError[];
 };
 
-/** Stored after a merchant completes Square OAuth (persist in Supabase later). */
+/** Square OAuth tokens stored for one organization. */
 export type SquareConnection = {
   merchantId: string;
   accessToken: string;

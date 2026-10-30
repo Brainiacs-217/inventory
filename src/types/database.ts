@@ -401,40 +401,40 @@ export type Database = {
       };
       square_connections: {
         Row: {
-          access_token: string;
-          created_at: string;
-          expires_at: string;
+          access_token_encrypted: string | null;
+          expires_at: string | null;
           id: string;
-          merchant_id: string;
+          last_synced_at: string | null;
+          location_id: string | null;
           organization_id: string;
-          refresh_token: string;
-          updated_at: string;
+          refresh_token_encrypted: string | null;
+          square_merchant_id: string;
         };
         Insert: {
-          access_token: string;
-          created_at?: string;
-          expires_at: string;
+          access_token_encrypted?: string | null;
+          expires_at?: string | null;
           id?: string;
-          merchant_id: string;
+          last_synced_at?: string | null;
+          location_id?: string | null;
           organization_id: string;
-          refresh_token: string;
-          updated_at?: string;
+          refresh_token_encrypted?: string | null;
+          square_merchant_id: string;
         };
         Update: {
-          access_token?: string;
-          created_at?: string;
-          expires_at?: string;
+          access_token_encrypted?: string | null;
+          expires_at?: string | null;
           id?: string;
-          merchant_id?: string;
+          last_synced_at?: string | null;
+          location_id?: string | null;
           organization_id?: string;
-          refresh_token?: string;
-          updated_at?: string;
+          refresh_token_encrypted?: string | null;
+          square_merchant_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "square_connections_organization_id_fkey";
             columns: ["organization_id"];
-            isOneToOne: false;
+            isOneToOne: true;
             referencedRelation: "organizations";
             referencedColumns: ["id"];
           },

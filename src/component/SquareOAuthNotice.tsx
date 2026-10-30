@@ -23,7 +23,9 @@ export function SquareOAuthNotice() {
 
     const squareError = searchParams.get("square_error");
     if (squareError) {
-      setError(formatSquareOAuthError(squareError));
+      setError(
+        formatSquareOAuthError(squareError, searchParams.get("square_error_detail")),
+      );
       setMessage(null);
       router.replace("/dashboard");
     }

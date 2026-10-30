@@ -3,8 +3,10 @@ import { revalidatePath } from "next/cache";
 import { squareSandboxFetch } from "@/lib/square/client";
 import {
   getSquareAccessToken,
+  getSquareApplicationSecret,
   isSquareSandboxTokenConfigured,
 } from "@/lib/square/config";
+import { decryptSquareToken, encryptSquareToken } from "@/lib/square/tokenCrypto";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { SquareConnection } from "@/types/square";
@@ -34,21 +36,31 @@ function mapConnectionToInsert(
   organizationId: string,
   connection: SquareConnection,
 ): TablesInsert<"square_connections"> {
+  const secret = getSquareApplicationSecret();
   return {
     organization_id: organizationId,
-    merchant_id: connection.merchantId,
-    access_token: connection.accessToken,
-    refresh_token: connection.refreshToken,
+    square_merchant_id: connection.merchantId,
+    access_token_encrypted: encryptSquareToken(connection.accessToken, secret),
+    refresh_token_encrypted: connection.refreshToken
+      ? encryptSquareToken(connection.refreshToken, secret)
+      : null,
     expires_at: connection.expiresAt,
   };
 }
 
 function mapRowToConnection(row: Tables<"square_connections">): SquareConnection {
+  if (!row.access_token_encrypted) {
+    throw new Error("Square connection is missing an access token.");
+  }
+
+  const secret = getSquareApplicationSecret();
   return {
-    merchantId: row.merchant_id,
-    accessToken: row.access_token,
-    refreshToken: row.refresh_token,
-    expiresAt: row.expires_at,
+    merchantId: row.square_merchant_id,
+    accessToken: decryptSquareToken(row.access_token_encrypted, secret),
+    refreshToken: row.refresh_token_encrypted
+      ? decryptSquareToken(row.refresh_token_encrypted, secret)
+      : "",
+    expiresAt: row.expires_at ?? "",
   };
 }
 
@@ -73,7 +85,11 @@ export async function getSquareConnection(
 
   if (error || !data) return null;
 
-  return { ...mapRowToConnection(data), source: "database" };
+  try {
+    return { ...mapRowToConnection(data), source: "database" };
+  } catch {
+    return null;
+  }
 }
 
 /** Access token for Square API calls: org connection first, then sandbox env token. */

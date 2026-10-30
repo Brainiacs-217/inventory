@@ -42,17 +42,27 @@ export async function GET(request: Request) {
   cookieStore.delete(SQUARE_OAUTH_NEXT_COOKIE);
 
   if (error) {
+    const detail = searchParams.get("error_description");
+    console.error("Square OAuth redirect error", error, detail);
     return dashboardRedirect(
       origin,
-      { square_error: error },
+      {
+        square_error: error,
+        ...(detail ? { square_error_detail: detail.slice(0, 200) } : {}),
+      },
       resumeCreateOrganization,
     );
   }
 
   if (!isSquareOAuthConfigured() || !code || !state) {
+    console.error("Square OAuth callback missing authorization", {
+      configured: isSquareOAuthConfigured(),
+      hasCode: Boolean(code),
+      hasState: Boolean(state),
+    });
     return dashboardRedirect(
       origin,
-      { square_error: "invalid_request" },
+      { square_error: "missing_code" },
       resumeCreateOrganization,
     );
   }

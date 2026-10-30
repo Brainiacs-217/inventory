@@ -79,13 +79,16 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
         logoSrc: org.logoSrc,
         squareConnected: markedConnected || status.connected,
         merchantId: status.merchantId,
-        squareError: squareError ? formatSquareOAuthError(squareError) : null,
+        squareError: squareError
+          ? formatSquareOAuthError(squareError, params.get("square_error_detail"))
+          : null,
       });
       setCreateOpen(true);
 
       params.delete("resume_create_org");
       params.delete("square_connected");
       params.delete("square_error");
+      params.delete("square_error_detail");
       const next = params.toString();
       router.replace(next ? `${window.location.pathname}?${next}` : window.location.pathname);
     });

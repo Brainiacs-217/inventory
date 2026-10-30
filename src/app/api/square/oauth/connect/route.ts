@@ -10,7 +10,10 @@ import {
   SQUARE_OAUTH_ORG_COOKIE,
   SQUARE_OAUTH_STATE_COOKIE,
 } from "@/lib/square/constants";
-import { isSquareOAuthConfigured } from "@/lib/square/config";
+import {
+  getSquareRedirectUri,
+  isSquareOAuthConfigured,
+} from "@/lib/square/config";
 import { buildSquareAuthorizationUrl } from "@/lib/square/oauth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -19,6 +22,27 @@ export async function GET(request: Request) {
 
   if (!isSquareOAuthConfigured()) {
     return NextResponse.redirect(`${origin}/dashboard?square_error=oauth_not_configured`);
+  }
+
+  let redirectUri: URL;
+  try {
+    redirectUri = new URL(getSquareRedirectUri());
+  } catch {
+    return NextResponse.redirect(`${origin}/dashboard?square_error=oauth_not_configured`);
+  }
+
+  // The state cookie is set on this host. Square must send the browser back here.
+  if (redirectUri.origin !== origin) {
+    const params = new URLSearchParams({
+      square_error: "redirect_host",
+      square_error_detail: redirectUri.origin,
+    });
+    if (
+      new URL(request.url).searchParams.get("next") === SQUARE_OAUTH_NEXT_CREATE_ORG
+    ) {
+      params.set("resume_create_org", "1");
+    }
+    return NextResponse.redirect(`${origin}/dashboard?${params.toString()}`);
   }
 
   const supabase = await createClient();
@@ -30,8 +54,23 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login`);
   }
 
-  const organizationId = await getSelectedOrganizationId();
+  const requestedOrganizationId = new URL(request.url).searchParams.get(
+    "organizationId",
+  );
+  const organizationId =
+    requestedOrganizationId || (await getSelectedOrganizationId());
   if (!organizationId) {
+    return NextResponse.redirect(`${origin}/dashboard?square_error=no_organization`);
+  }
+
+  const { data: membership } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("organization_id", organizationId)
+    .eq("profile_id", user.id)
+    .maybeSingle();
+
+  if (!membership) {
     return NextResponse.redirect(`${origin}/dashboard?square_error=no_organization`);
   }
 
