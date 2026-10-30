@@ -231,8 +231,18 @@ export function ItemsMobileList({
                         {rowMeta(item, categoryFilter.length > 0)}
                       </span>
                     </span>
-                    <span className="shrink-0 font-mono text-[13px] font-medium text-text-secondary tabular-nums">
-                      ${item.cost.toFixed(2)}
+                    <span className="flex shrink-0 flex-col items-end">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                        Cost
+                      </span>
+                      <span className="font-mono text-[13px] font-medium text-text-secondary tabular-nums">
+                        ${item.cost.toFixed(2)}
+                      </span>
+                      {item.reportingUnit.trim() ? (
+                        <span className="max-w-24 truncate text-[11px] leading-4 text-text-muted">
+                          {item.reportingUnit}
+                        </span>
+                      ) : null}
                     </span>
                   </button>
                 </li>

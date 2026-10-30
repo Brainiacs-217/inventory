@@ -81,6 +81,7 @@ export function mapRecipeRowToRecipe(
     name: row.name,
     createdAt: row.created_at,
     ingredientCount: ingredients.length,
+    cog: null,
     ingredients: [...ingredients],
   };
 }

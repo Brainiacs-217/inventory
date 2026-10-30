@@ -4,8 +4,7 @@ import { Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ListFilterButton, type ListFilterOption } from "@/component/ListFilterButton";
-import { formatCurrency } from "@/lib/formatCurrency";
-import { placeholderBatchPrice } from "@/lib/placeholderPrice";
+import { formatOptionalCurrency } from "@/lib/formatCurrency";
 import { formatBatchYield, type Batch } from "@/types/batch";
 
 const SEARCH_INPUT_CLASS =
@@ -157,8 +156,13 @@ export function BatchesMobileList({
                         {formatBatchYield(batch.yieldQuantity, batch.yieldUnitSymbol)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[13px] font-medium text-text-primary tabular-nums">
-                      {formatCurrency(placeholderBatchPrice(batch.id))}
+                    <span className="flex shrink-0 flex-col items-end">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                        Cost
+                      </span>
+                      <span className="text-[13px] font-medium text-text-primary tabular-nums">
+                        {formatOptionalCurrency(batch.totalCost)}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -248,8 +252,8 @@ export function BatchesMobileList({
             />
             <DetailRow label="Items" value={itemLabel(openBatch.ingredientCount)} />
             <DetailRow
-              label="Price"
-              value={formatCurrency(placeholderBatchPrice(openBatch.id))}
+              label="Cost"
+              value={formatOptionalCurrency(openBatch.totalCost)}
             />
             <DetailRow label="Created" value={formatCreatedAt(openBatch.createdAt)} />
           </dl>

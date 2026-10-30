@@ -65,6 +65,7 @@ export function mapBatchRowToBatch(
     yieldUnitId: String(row.yield_unit_id),
     yieldUnitSymbol,
     ingredientCount: ingredients.length,
+    totalCost: null,
     ingredients,
   };
 }

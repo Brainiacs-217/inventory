@@ -8,8 +8,7 @@ import { CreateRecipeModal } from "@/component/CreateRecipeModal";
 import { ListFilterButton } from "@/component/ListFilterButton";
 import { Modal } from "@/component/Modal";
 import { RecipesMobileList } from "@/component/RecipesMobileList";
-import { formatCurrency } from "@/lib/formatCurrency";
-import { placeholderRecipeCog } from "@/lib/placeholderPrice";
+import { formatOptionalCurrency } from "@/lib/formatCurrency";
 import { createRecipe, deleteRecipes, updateRecipe } from "@/lib/recipes/actions";
 import type { InventoryItem } from "@/types/item";
 import type {
@@ -361,7 +360,7 @@ export function RecipesTable({
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <span className="tabular-nums font-medium text-text-primary">
-                        {formatCurrency(placeholderRecipeCog(recipe.id))}
+                        {formatOptionalCurrency(recipe.cog)}
                       </span>
                     </td>
                   </tr>

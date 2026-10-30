@@ -6,6 +6,7 @@ export type Batch = {
   yieldUnitId: string;
   yieldUnitSymbol: string;
   ingredientCount: number;
+  totalCost: number | null;
   ingredients: BatchIngredientInput[];
 };
 

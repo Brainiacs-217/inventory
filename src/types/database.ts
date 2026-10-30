@@ -507,7 +507,28 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      batch_costs: {
+        Row: {
+          batch_id: number;
+          cost_per_standard_unit: number | null;
+          measurement_type: string;
+          name: string;
+          organization_id: string;
+          total_batch_cost: number | null;
+          yield_quantity: number;
+          yield_unit_id: number;
+        };
+        Relationships: [];
+      };
+      recipe_costs: {
+        Row: {
+          cost_per_recipe: number | null;
+          organization_id: string;
+          recipe_id: number;
+          recipe_name: string;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       [_ in never]: never;

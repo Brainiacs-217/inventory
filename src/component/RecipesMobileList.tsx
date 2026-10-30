@@ -4,8 +4,7 @@ import { Plus, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ListFilterButton } from "@/component/ListFilterButton";
-import { formatCurrency } from "@/lib/formatCurrency";
-import { placeholderRecipeCog } from "@/lib/placeholderPrice";
+import { formatOptionalCurrency } from "@/lib/formatCurrency";
 import type { Recipe } from "@/types/recipe";
 
 const SEARCH_INPUT_CLASS =
@@ -150,8 +149,13 @@ export function RecipesMobileList({
                         {itemLabel(recipe.ingredientCount)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-[13px] font-medium text-text-primary tabular-nums">
-                      {formatCurrency(placeholderRecipeCog(recipe.id))}
+                    <span className="flex shrink-0 flex-col items-end">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
+                        COG
+                      </span>
+                      <span className="text-[13px] font-medium text-text-primary tabular-nums">
+                        {formatOptionalCurrency(recipe.cog)}
+                      </span>
                     </span>
                   </button>
                 </li>
@@ -238,7 +242,7 @@ export function RecipesMobileList({
             <DetailRow label="Items" value={itemLabel(openRecipe.ingredientCount)} />
             <DetailRow
               label="COG"
-              value={formatCurrency(placeholderRecipeCog(openRecipe.id))}
+              value={formatOptionalCurrency(openRecipe.cog)}
             />
           </dl>
         ) : null}

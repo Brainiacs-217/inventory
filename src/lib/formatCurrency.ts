@@ -6,3 +6,7 @@ export function formatCurrency(value: number): string {
     maximumFractionDigits: 2,
   }).format(value);
 }
+
+export function formatOptionalCurrency(value: number | null): string {
+  return value == null ? "—" : formatCurrency(value);
+}

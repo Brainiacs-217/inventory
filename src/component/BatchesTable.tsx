@@ -9,8 +9,7 @@ import { CreateBatchModal } from "@/component/CreateBatchModal";
 import { ListFilterButton } from "@/component/ListFilterButton";
 import { Modal } from "@/component/Modal";
 import { createBatch, deleteBatches, updateBatch } from "@/lib/batches/actions";
-import { formatCurrency } from "@/lib/formatCurrency";
-import { placeholderBatchPrice } from "@/lib/placeholderPrice";
+import { formatOptionalCurrency } from "@/lib/formatCurrency";
 import {
   formatBatchYield,
   type Batch,
@@ -322,7 +321,7 @@ export function BatchesTable({
                   <th className="px-3 py-3">Name</th>
                   <th className="px-3 py-3">Yield</th>
                   <th className="px-3 py-3">Items</th>
-                  <th className="px-3 py-3">Price</th>
+                  <th className="px-3 py-3">Cost</th>
                   <th className="px-3 py-3">Created</th>
                 </tr>
               </thead>
@@ -383,7 +382,7 @@ export function BatchesTable({
                     </td>
                     <td className="px-3 py-3 align-middle">
                       <span className="tabular-nums font-medium text-text-primary">
-                        {formatCurrency(placeholderBatchPrice(batch.id))}
+                        {formatOptionalCurrency(batch.totalCost)}
                       </span>
                     </td>
                     <td className="px-3 py-3 align-middle">

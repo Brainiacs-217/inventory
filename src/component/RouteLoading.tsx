@@ -18,7 +18,7 @@ const LIST_COPY = {
     label: "Loading batches",
     search: "Search batches…",
     sections: null,
-    headers: ["Name", "Yield", "Items", "Price", "Created"],
+    headers: ["Name", "Yield", "Items", "Cost", "Created"],
   },
   recipes: {
     label: "Loading recipes",
