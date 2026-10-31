@@ -167,7 +167,10 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
   }, [refreshOrganizations, router]);
 
   useEffect(() => {
+    if (!createOpen) return;
+
     let cancelled = false;
+    setSquareOptions(null);
 
     getSquareConnectOptions()
       .then((options) => {
@@ -182,7 +185,7 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [createOpen]);
 
   const selected = getOrganization(selectedId, organizations);
 

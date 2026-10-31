@@ -270,7 +270,7 @@ export function CreateOrganizationModal({
       return;
     }
 
-    if (!squareOptions || !connectAvailable) {
+    if (squareOptions && !connectAvailable) {
       setSquareError("Square is not configured.");
       return;
     }
@@ -280,7 +280,7 @@ export function CreateOrganizationModal({
     setSubmitError(null);
 
     try {
-      if (squareOptions.oauthEnabled) {
+      if (!squareOptions || squareOptions.oauthEnabled) {
         const name = values.name.trim();
         savePendingOrgDraft({ name, logoSrc: values.logoSrc });
         const params = new URLSearchParams({
@@ -459,13 +459,16 @@ export function CreateOrganizationModal({
                 <button
                   type="button"
                   onClick={handleConnectSquare}
-                  disabled={busy || !squareOptions || !connectAvailable}
+                  disabled={busy || (squareOptions !== null && !connectAvailable)}
                   className="inline-flex shrink-0 items-center rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-text-primary shadow-sm transition-colors hover:bg-accent-hover disabled:opacity-50"
                 >
                   {connecting ? "Connecting…" : "Connect"}
                 </button>
               )}
             </div>
+            {squareOptions && !connectAvailable && (
+              <p className="text-xs text-text-muted">{squareDetail}</p>
+            )}
             {squareError && <p className="text-xs text-error">{squareError}</p>}
           </div>
 
