@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { InventoryAlerts } from "@/component/InventoryAlerts";
 import { ProfitOverTimeChart } from "@/component/ProfitOverTimeChart";
-import { RecipeProfitChart } from "@/component/RecipeProfitChart";
+import { RecipeProfitChart, RecipeProfitChartSkeleton } from "@/component/RecipeProfitChart";
 import { SquareOAuthNotice } from "@/component/SquareOAuthNotice";
 import { getSelectedOrganizationId } from "@/lib/organizations/selectedOrg";
 import { listTopItemSales } from "@/lib/sql/profit/queries";
@@ -17,9 +17,6 @@ const EMPTY_SALES: RecipeSalesByPeriod = {
 
 export default async function DashboardPage() {
   const organizationId = await getSelectedOrganizationId();
-  const salesByPeriod = organizationId
-    ? await listTopItemSales(organizationId)
-    : EMPTY_SALES;
 
   return (
     <div className="page-enter flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
@@ -27,7 +24,9 @@ export default async function DashboardPage() {
         <SquareOAuthNotice />
       </Suspense>
 
-      <RecipeProfitChart data={salesByPeriod} />
+      <Suspense fallback={<RecipeProfitChartSkeleton />}>
+        <RecipeProfitSection organizationId={organizationId} />
+      </Suspense>
 
       <div className="flex shrink-0 flex-col gap-4 lg:flex-row lg:items-stretch">
         <div className="flex min-w-0 flex-1 flex-col">
@@ -39,4 +38,16 @@ export default async function DashboardPage() {
       </div>
     </div>
   );
+}
+
+async function RecipeProfitSection({
+  organizationId,
+}: {
+  organizationId: string | null;
+}) {
+  const salesByPeriod = organizationId
+    ? await listTopItemSales(organizationId)
+    : EMPTY_SALES;
+
+  return <RecipeProfitChart data={salesByPeriod} />;
 }

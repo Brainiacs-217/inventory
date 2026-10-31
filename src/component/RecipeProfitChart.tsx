@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-import { formatCurrency, formatOptionalCurrency } from "@/lib/formatCurrency";
+import { formatCurrency } from "@/lib/formatCurrency";
 import {
   CHART_ACCESSIBILITY,
   CHART_BAR_PROPS,
@@ -33,6 +33,21 @@ import { useFollowCursorTooltip } from "@/hooks/useFollowCursorTooltip";
 const CHART_CARD_CLASS =
   "flex w-full shrink-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
 
+export function RecipeProfitChartSkeleton() {
+  return (
+    <div className={CHART_CARD_CLASS} aria-hidden="true">
+      <div className="flex shrink-0 items-center gap-3 border-b border-border/80 px-5 py-3.5">
+        <div className="size-9 rounded-lg bg-surface-muted" />
+        <div className="space-y-2">
+          <div className="h-4 w-36 rounded bg-surface-muted" />
+          <div className="h-3 w-24 rounded bg-surface-muted" />
+        </div>
+      </div>
+      <div className="h-[calc(14rem+1in)] animate-pulse bg-surface-muted/50" />
+    </div>
+  );
+}
+
 const RECIPE_PROFIT_GRADIENT_ID = "fill-recipe-profit";
 
 const PERIODS: { id: SalesPeriod; label: string; range: string }[] = [
@@ -43,34 +58,33 @@ const PERIODS: { id: SalesPeriod; label: string; range: string }[] = [
 ];
 
 function formatProfitAxisTick(value: number): string {
-  if (value >= 1000) {
-    return `$${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k`;
+  const absolute = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+
+  if (absolute >= 1000) {
+    return `${sign}$${(absolute / 1000).toFixed(absolute % 1000 === 0 ? 0 : 1)}k`;
   }
 
-  return `$${value}`;
+  return `${sign}$${absolute}`;
 }
 
 type RecipeTooltipProps = {
   active?: boolean;
-  payload?: Array<{ value?: number; payload?: RecipeSales }>;
+  payload?: Array<{ payload?: RecipeSales }>;
 };
 
 function RecipeTooltip({ active, payload }: RecipeTooltipProps) {
-  if (!active || !payload?.length) return null;
+  const point = payload?.[0]?.payload;
+  if (!active || !point?.name) return null;
 
-  const point = payload[0]?.payload;
-  if (!point) return null;
+  const sold = point.quantitySold ?? 0;
 
   return (
     <div className="rounded-md border border-border bg-surface px-3 py-2 text-sm shadow-sm">
       <p className="font-medium text-text-primary">{point.name}</p>
-      <p className="text-text-secondary">{formatCurrency(point.sales)} sales</p>
-      <p className="text-text-secondary">
-        {point.profit == null
-          ? "Profit needs a linked recipe"
-          : `${formatOptionalCurrency(point.profit)} profit`}
-      </p>
-      <p className="text-text-muted">{point.quantitySold.toLocaleString()} sold</p>
+      <p className="text-text-secondary">{formatCurrency(point.revenue ?? 0)} revenue</p>
+      <p className="text-text-secondary">{formatCurrency(point.profit ?? 0)} profit</p>
+      <p className="text-text-muted">{sold.toLocaleString()} sold</p>
     </div>
   );
 }
@@ -82,8 +96,7 @@ type RecipeProfitChartProps = {
 export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
   const [period, setPeriod] = useState<SalesPeriod>("day");
   const { position, onMouseMove, onMouseLeave } = useFollowCursorTooltip();
-  const points = data[period];
-  const hasProfit = points.some((point) => point.profit != null);
+  const recipes = data[period] ?? [];
   const rangeLabel = PERIODS.find((option) => option.id === period)?.range ?? "Today";
 
   return (
@@ -96,12 +109,12 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
           <p className="text-sm font-semibold tracking-tight text-text-primary">
             Recipe profit &amp; sales
           </p>
-          <p className="text-xs text-text-muted">Top 5 by sales · {rangeLabel}</p>
+          <p className="text-xs text-text-muted">All recipes · {rangeLabel}</p>
         </div>
         <div
           role="group"
           aria-label="Sales period"
-          className="ml-auto flex shrink-0 rounded-md border border-border/80 bg-background p-0.5"
+          className="mr-auto flex shrink-0 rounded-md border border-border/80 bg-background p-0.5 md:mr-0 md:ml-auto"
         >
           {PERIODS.map((option) => {
             const selected = option.id === period;
@@ -124,16 +137,17 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
         </div>
       </div>
       <div className="h-[calc(14rem+1in)] px-2 pb-5 pt-4 sm:px-4">
-        {points.length === 0 ? (
+        {recipes.length === 0 ? (
           <p className="flex h-full items-center justify-center text-sm text-text-muted">
-            No sales in this period.
+            No recipes yet.
           </p>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               {...CHART_ACCESSIBILITY}
-              data={points}
-              margin={{ top: hasProfit ? 28 : 8, right: 12, left: 4, bottom: 36 }}
+              data={recipes}
+              barGap={4}
+              margin={{ top: 28, right: 12, left: 4, bottom: 36 }}
               onMouseMove={onMouseMove}
               onMouseLeave={onMouseLeave}
             >
@@ -169,39 +183,35 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
                 position={position ?? undefined}
                 {...CHART_TOOLTIP_PROPS}
               />
-              {hasProfit ? (
-                <Legend
-                  verticalAlign="top"
-                  align="right"
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: 12, color: CHART_MUTED }}
-                />
-              ) : null}
+              <Legend
+                verticalAlign="top"
+                align="right"
+                iconType="circle"
+                iconSize={8}
+                wrapperStyle={{ fontSize: 12, color: CHART_MUTED }}
+              />
               <Bar
-                dataKey="sales"
-                name="Sales"
+                dataKey="revenue"
+                name="Revenue"
                 fill={CHART_FILL}
                 stroke={CHART_FILL_ACTIVE}
                 strokeWidth={1}
                 radius={[6, 6, 0, 0]}
-                maxBarSize={28}
+                maxBarSize={56}
                 activeBar={{ fill: CHART_FILL_ACTIVE, stroke: CHART_FILL_ACTIVE }}
                 {...CHART_BAR_PROPS}
               />
-              {hasProfit ? (
-                <Bar
-                  dataKey="profit"
-                  name="Profit"
-                  fill={`url(#${RECIPE_PROFIT_GRADIENT_ID})`}
-                  stroke={CHART_PROFIT_STROKE}
-                  strokeWidth={1}
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={28}
-                  activeBar={{ fill: CHART_PROFIT_FILL_ACTIVE, stroke: CHART_PROFIT_STROKE }}
-                  {...CHART_BAR_PROPS}
-                />
-              ) : null}
+              <Bar
+                dataKey="profit"
+                name="Profit"
+                fill={`url(#${RECIPE_PROFIT_GRADIENT_ID})`}
+                stroke={CHART_PROFIT_STROKE}
+                strokeWidth={1}
+                radius={[6, 6, 0, 0]}
+                maxBarSize={56}
+                activeBar={{ fill: CHART_PROFIT_FILL_ACTIVE, stroke: CHART_PROFIT_STROKE }}
+                {...CHART_BAR_PROPS}
+              />
             </BarChart>
           </ResponsiveContainer>
         )}

@@ -5,11 +5,12 @@ export type MonthlyProfit = {
 
 export type SalesPeriod = "day" | "week" | "month" | "year";
 
+/** Revenue and profit for one recipe. Amounts are dollars. */
 export type RecipeSales = {
   id: string;
   name: string;
-  sales: number;
-  profit: number | null;
+  revenue: number;
+  profit: number;
   quantitySold: number;
 };
 
