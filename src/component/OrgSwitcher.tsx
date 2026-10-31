@@ -16,6 +16,10 @@ import {
   updateOrganizationLogo,
 } from "@/lib/organizations/actions";
 import {
+  clearPendingOrgDraft,
+  readPendingOrgDraft,
+} from "@/lib/organizations/pendingOrgDraft";
+import {
   getOrganizationSquareStatus,
   getSquareConnectOptions,
   type SquareConnectOptions,
@@ -64,35 +68,74 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
     const params = new URLSearchParams(window.location.search);
     if (params.get("resume_create_org") !== "1") return;
 
-    const org =
-      organizations.find((item) => item.id === selectedId) ?? organizations[0];
-    if (!org) return;
-
     resumedCreateOrg.current = true;
     const squareError = params.get("square_error");
+    const squareErrorDetail = params.get("square_error_detail");
     const markedConnected = params.get("square_connected") === "1";
+    const createdId = params.get("organization_id");
+    const draft = readPendingOrgDraft();
+    const draftName = params.get("org_name") || draft?.name || "";
 
-    void getOrganizationSquareStatus(org.id).then((status) => {
-      setCreateResume({
-        organizationId: org.id,
-        name: org.name,
-        logoSrc: org.logoSrc,
-        squareConnected: markedConnected || status.connected,
-        merchantId: status.merchantId,
-        squareError: squareError
-          ? formatSquareOAuthError(squareError, params.get("square_error_detail"))
-          : null,
-      });
-      setCreateOpen(true);
-
+    function clearResumeParams() {
       params.delete("resume_create_org");
       params.delete("square_connected");
       params.delete("square_error");
       params.delete("square_error_detail");
+      params.delete("organization_id");
+      params.delete("org_name");
       const next = params.toString();
       router.replace(next ? `${window.location.pathname}?${next}` : window.location.pathname);
+    }
+
+    if (markedConnected && createdId) {
+      void (async () => {
+        try {
+          const orgs = await refreshOrganizations();
+          const org = orgs.find((item) => item.id === createdId);
+          localStorage.setItem(ORG_STORAGE_KEY, createdId);
+          setSelectedId(createdId);
+          await setSelectedOrganizationCookie(createdId);
+          notifyOrganizationChanged();
+          const status = await getOrganizationSquareStatus(createdId);
+          setCreateResume({
+            organizationId: createdId,
+            name: org?.name || draftName,
+            logoSrc: draft?.logoSrc ?? org?.logoSrc,
+            squareConnected: status.connected,
+            merchantId: status.merchantId,
+            squareError: null,
+          });
+          clearPendingOrgDraft();
+        } catch (error) {
+          setCreateResume({
+            organizationId: createdId,
+            name: draftName,
+            logoSrc: draft?.logoSrc ?? undefined,
+            squareConnected: true,
+            merchantId: null,
+            squareError:
+              error instanceof Error ? error.message : "Could not open the new organization.",
+          });
+        }
+        setCreateOpen(true);
+        clearResumeParams();
+      })();
+      return;
+    }
+
+    setCreateResume({
+      organizationId: null,
+      name: draftName,
+      logoSrc: draft?.logoSrc ?? undefined,
+      squareConnected: false,
+      merchantId: null,
+      squareError: squareError
+        ? formatSquareOAuthError(squareError, squareErrorDetail)
+        : null,
     });
-  }, [loading, organizations, router, selectedId]);
+    setCreateOpen(true);
+    clearResumeParams();
+  }, [loading, refreshOrganizations, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -283,6 +326,10 @@ export function OrgSwitcher({ collapsed = false }: { collapsed?: boolean }) {
         }}
         onSave={handleCreateOrganization}
         onAttachLogo={handleAttachLogo}
+        onOrganizationCreated={async (organizationId) => {
+          await refreshOrganizations();
+          await selectOrg(organizationId);
+        }}
         squareOptions={squareOptions}
         resume={createResume}
       />

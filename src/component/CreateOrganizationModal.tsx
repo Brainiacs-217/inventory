@@ -4,7 +4,11 @@ import { Check, ImagePlus, Plug, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Modal } from "@/component/Modal";
-import { connectSandboxSquare, type SquareConnectOptions } from "@/lib/square/actions";
+import { savePendingOrgDraft } from "@/lib/organizations/pendingOrgDraft";
+import {
+  createOrganizationFromSandbox,
+  type SquareConnectOptions,
+} from "@/lib/square/actions";
 import { SQUARE_OAUTH_NEXT_CREATE_ORG } from "@/lib/square/constants";
 import {
   createEmptyOrganizationFormValues,
@@ -12,7 +16,7 @@ import {
 } from "@/types/organization";
 
 export type CreateOrganizationResume = {
-  organizationId: string;
+  organizationId: string | null;
   name: string;
   logoSrc?: string;
   squareConnected: boolean;
@@ -27,6 +31,7 @@ type CreateOrganizationModalProps = {
     values: CreateOrganizationFormValues,
   ) => Promise<{ organizationId: string }>;
   onAttachLogo: (organizationId: string, file: File) => Promise<void>;
+  onOrganizationCreated?: (organizationId: string) => Promise<void>;
   squareOptions: SquareConnectOptions | null;
   resume?: CreateOrganizationResume | null;
 };
@@ -79,6 +84,19 @@ function validateForm(values: CreateOrganizationFormValues): FormErrors {
   return errors;
 }
 
+function dataUrlToFile(dataUrl: string): File | null {
+  const [header, data] = dataUrl.split(",");
+  if (!header || !data) return null;
+  const mime = header.match(/data:(.*?);/)?.[1] ?? "image/png";
+  const binary = atob(data);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  const extension = mime.split("/")[1] ?? "png";
+  return new File([bytes], `logo.${extension}`, { type: mime });
+}
+
 function readLogoFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -99,6 +117,7 @@ export function CreateOrganizationModal({
   onClose,
   onSave,
   onAttachLogo,
+  onOrganizationCreated,
   squareOptions,
   resume = null,
 }: CreateOrganizationModalProps) {
@@ -129,12 +148,21 @@ export function CreateOrganizationModal({
     if (!open) return;
 
     if (resume) {
+      let logoFile: File | null = null;
+      if (resume.logoSrc?.startsWith("data:")) {
+        try {
+          logoFile = dataUrlToFile(resume.logoSrc);
+        } catch {
+          logoFile = null;
+        }
+      }
       savedLogoFileRef.current = null;
       createdOrganizationIdRef.current = resume.organizationId;
       setValues({
         ...createEmptyOrganizationFormValues(),
         name: resume.name,
         logoSrc: resume.logoSrc ?? null,
+        logoFile,
       });
       setErrors({});
       setSaving(false);
@@ -224,18 +252,6 @@ export function CreateOrganizationModal({
     }));
   }
 
-  async function ensureOrganization(): Promise<string> {
-    if (createdOrganizationIdRef.current) {
-      return createdOrganizationIdRef.current;
-    }
-
-    const { organizationId } = await onSave(values);
-    createdOrganizationIdRef.current = organizationId;
-    savedLogoFileRef.current = values.logoFile;
-    setCreatedOrganizationId(organizationId);
-    return organizationId;
-  }
-
   async function finishAndClose(organizationId: string | null) {
     if (
       organizationId &&
@@ -264,25 +280,28 @@ export function CreateOrganizationModal({
     setSubmitError(null);
 
     try {
-      const organizationId = await ensureOrganization();
-
       if (squareOptions.oauthEnabled) {
+        const name = values.name.trim();
+        savePendingOrgDraft({ name, logoSrc: values.logoSrc });
         const params = new URLSearchParams({
           next: SQUARE_OAUTH_NEXT_CREATE_ORG,
-          organizationId,
+          name,
         });
         window.location.assign(`/api/square/oauth/connect?${params.toString()}`);
         return;
       }
 
-      const result = await connectSandboxSquare(organizationId);
+      const result = await createOrganizationFromSandbox(values.name.trim());
       if ("error" in result) {
         setSquareError(result.error);
         return;
       }
 
+      createdOrganizationIdRef.current = result.organizationId;
+      setCreatedOrganizationId(result.organizationId);
       setMerchantId(result.merchantId);
       setSquareConnected(true);
+      await onOrganizationCreated?.(result.organizationId);
     } catch (error) {
       setSquareError(
         error instanceof Error ? error.message : "Failed to connect Square.",
@@ -355,7 +374,7 @@ export function CreateOrganizationModal({
         ? `Merchant ${merchantId} is linked to this organization.`
         : "This organization's Square account is linked."
       : connectAvailable
-        ? "Link your Square account. Connecting saves this organization."
+        ? "Square connects first. This organization is created after that succeeds."
         : "Add Square credentials to link an account.";
 
   const footer = (

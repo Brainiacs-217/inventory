@@ -13,7 +13,24 @@ export const SQUARE_OAUTH_ORG_COOKIE = "square_oauth_org";
 /** Where to send the user after Square redirects back. */
 export const SQUARE_OAUTH_NEXT_COOKIE = "square_oauth_next";
 
+/** Organization name to create after Square returns an access token. */
+export const SQUARE_OAUTH_ORG_NAME_COOKIE = "square_oauth_org_name";
+
 export const SQUARE_OAUTH_NEXT_CREATE_ORG = "create-organization";
+
+export const MAX_ORGANIZATION_NAME_LENGTH = 120;
+
+export function readPendingOrganizationName(value: string | undefined): string | null {
+  if (!value) return null;
+
+  try {
+    const name = decodeURIComponent(value).trim();
+    if (!name || name.length > MAX_ORGANIZATION_NAME_LENGTH) return null;
+    return name;
+  } catch {
+    return null;
+  }
+}
 
 export function formatSquareOAuthError(code: string, detail?: string | null): string {
   const extra = detail?.replace(/\s+/g, " ").trim();
@@ -32,6 +49,10 @@ export function formatSquareOAuthError(code: string, detail?: string | null): st
       return "Square connection failed: session expired. Try again.";
     case "no_organization":
       return "Create the organization again before connecting Square.";
+    case "invalid_org_name":
+      return "Enter an organization name before connecting Square.";
+    case "org_not_created":
+      return extra ?? "Square connected, but the organization could not be saved. Try connecting again.";
     case "oauth_not_configured":
       return "Square OAuth is not configured.";
     case "token_exchange":

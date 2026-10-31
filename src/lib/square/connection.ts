@@ -1,5 +1,6 @@
 import { revalidatePath } from "next/cache";
 
+import { getSql } from "@/lib/sql/client";
 import { squareSandboxFetch } from "@/lib/square/client";
 import {
   getSquareAccessToken,
@@ -7,6 +8,7 @@ import {
   isSquareSandboxTokenConfigured,
 } from "@/lib/square/config";
 import { decryptSquareToken, encryptSquareToken } from "@/lib/square/tokenCrypto";
+import { MAX_ORGANIZATION_NAME_LENGTH } from "@/lib/square/constants";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { SquareConnection } from "@/types/square";
@@ -188,6 +190,84 @@ export async function saveSquareConnectionFromOAuth(
 ): Promise<SaveResult> {
   const connection = mapTokenResponseToConnection(tokens);
   return saveSquareConnection(organizationId, connection);
+}
+
+/**
+ * Creates the organization only after Square has already returned an access token.
+ * The organization, membership, and connection commit together.
+ */
+export async function createOrganizationWithSquareConnection(
+  userId: string,
+  name: string,
+  connection: SquareConnection,
+): Promise<{ error: string } | { organizationId: string; merchantId: string }> {
+  const trimmedName = name.trim();
+  if (!userId) {
+    return { error: "You must be signed in to create an organization." };
+  }
+  if (!trimmedName || trimmedName.length > MAX_ORGANIZATION_NAME_LENGTH) {
+    return { error: "Enter an organization name before connecting Square." };
+  }
+  if (!connection.accessToken || !connection.merchantId) {
+    return { error: "Square did not return an access token." };
+  }
+
+  const secret = getSquareApplicationSecret();
+  const accessTokenEncrypted = encryptSquareToken(connection.accessToken, secret);
+  const refreshTokenEncrypted = connection.refreshToken
+    ? encryptSquareToken(connection.refreshToken, secret)
+    : null;
+
+  try {
+    const organizationId = await getSql().begin(async (tx) => {
+      const inserted = await tx<{ id: string }[]>`
+        insert into public.organizations (name, created_by)
+        values (${trimmedName}, ${userId})
+        returning id
+      `;
+      const id = inserted[0]?.id;
+      if (!id) {
+        throw new Error("Organization was not created.");
+      }
+
+      await tx`
+        insert into public.organization_members (organization_id, profile_id, role)
+        values (${id}, ${userId}, 'owner')
+      `;
+      await tx`
+        insert into public.square_connections (
+          organization_id,
+          square_merchant_id,
+          access_token_encrypted,
+          refresh_token_encrypted,
+          expires_at
+        )
+        values (
+          ${id},
+          ${connection.merchantId},
+          ${accessTokenEncrypted},
+          ${refreshTokenEncrypted},
+          ${connection.expiresAt}
+        )
+      `;
+      return id;
+    });
+
+    revalidatePath("/dashboard");
+    return { organizationId, merchantId: connection.merchantId };
+  } catch (error) {
+    const code =
+      typeof error === "object" && error && "code" in error
+        ? String(error.code)
+        : "";
+    if (code === "23505") {
+      return {
+        error: "That Square account is already connected to an organization.",
+      };
+    }
+    console.error("Failed to create organization with Square connection", error);
+    return { error: "Could not save the Square connection." };
+  }
 }
 
 export async function disconnectSquareConnection(

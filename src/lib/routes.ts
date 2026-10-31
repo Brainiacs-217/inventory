@@ -5,8 +5,7 @@ export type NavIcon =
   | "package"
   | "boxes"
   | "book-open"
-  | "warehouse"
-  | "calculator";
+  | "warehouse";
 
 export type NavItem = {
   label: string;
@@ -19,7 +18,6 @@ export const navItems: NavItem[] = [
   { href: "/items", label: "Items", icon: "package" },
   { href: "/batches", label: "Batches", icon: "boxes" },
   { href: "/recipes", label: "Recipes", icon: "book-open" },
-  { href: "/inventory/cogs-test", label: "COGS Test", icon: "calculator" },
   { href: "/inventory", label: "Inventory", icon: "warehouse" },
 ];
 

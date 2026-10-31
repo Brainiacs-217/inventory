@@ -3,7 +3,6 @@
 import {
   BookOpen,
   Boxes,
-  Calculator,
   LayoutDashboard,
   Package,
   Warehouse,
@@ -18,7 +17,6 @@ const navIcons: Record<NavIcon, LucideIcon> = {
   boxes: Boxes,
   "book-open": BookOpen,
   warehouse: Warehouse,
-  calculator: Calculator,
 };
 
 export function NavIcon({ icon }: { icon: NavIcon }) {
