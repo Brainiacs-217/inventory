@@ -101,20 +101,22 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
 
   return (
     <div className={CHART_CARD_CLASS}>
-      <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-border/80 bg-surface px-5 py-3.5">
-        <div className={CHART_ICON_BADGE_CLASS}>
-          <BookOpen className="size-4 text-text-muted" strokeWidth={1.75} />
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-semibold tracking-tight text-text-primary">
-            Recipe profit &amp; sales
-          </p>
-          <p className="text-xs text-text-muted">All recipes · {rangeLabel}</p>
+      <div className="flex shrink-0 flex-col items-start gap-3 border-b border-border/80 bg-surface px-5 py-3.5">
+        <div className="flex items-center gap-3">
+          <div className={CHART_ICON_BADGE_CLASS}>
+            <BookOpen className="size-4 text-text-muted" strokeWidth={1.75} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold tracking-tight text-text-primary">
+              Recipe profit &amp; sales
+            </p>
+            <p className="text-xs text-text-muted">All recipes · {rangeLabel}</p>
+          </div>
         </div>
         <div
           role="group"
           aria-label="Sales period"
-          className="mr-auto flex shrink-0 rounded-md border border-border/80 bg-background p-0.5 md:mr-0 md:ml-auto"
+          className="flex shrink-0 rounded-md border border-border/80 bg-background p-0.5"
         >
           {PERIODS.map((option) => {
             const selected = option.id === period;
