@@ -27,7 +27,7 @@ import type { MonthlyProfit } from "@/types/dashboard";
 import { useFollowCursorTooltip } from "@/hooks/useFollowCursorTooltip";
 
 const CHART_CARD_CLASS =
-  "w-full shrink-0 overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
+  "flex w-full shrink-0 flex-col overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
 
 const PROFIT_FILL_GRADIENT_ID = "fill-profit";
 

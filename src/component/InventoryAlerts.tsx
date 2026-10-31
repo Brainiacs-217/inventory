@@ -10,7 +10,7 @@ import type { InventoryAlertType, InventoryCount } from "@/types/inventory";
 const CARD_CLASS =
   "w-full overflow-hidden rounded-xl border border-border/80 bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-4px_rgba(0,0,0,0.08)]";
 
-/** Matches RecipeProfitChart plot area so the paired dashboard cards feel balanced. */
+/** Matches ProfitOverTimeChart plot area so the paired dashboard cards feel balanced. */
 const BODY_MIN_HEIGHT_CLASS = "min-h-[calc(14rem+1in)] lg:min-h-0";
 
 function statusClass(type: InventoryAlertType): string {

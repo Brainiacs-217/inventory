@@ -83,6 +83,7 @@ export function mapRecipeRowToRecipe(
     ingredientCount: ingredients.length,
     cog: null,
     ingredients: [...ingredients],
+    squareItems: [],
   };
 }
 

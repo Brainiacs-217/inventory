@@ -1,5 +1,5 @@
 export type { Database, Json } from "./database";
-export type { MonthlyProfit, RecipeSales } from "./dashboard";
+export type { MonthlyProfit, RecipeSales, RecipeSalesByPeriod, SalesPeriod } from "./dashboard";
 export type {
   CreateItemFormValues,
   InventoryItem,

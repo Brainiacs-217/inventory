@@ -3,9 +3,14 @@ export type MonthlyProfit = {
   profit: number | null;
 };
 
+export type SalesPeriod = "day" | "week" | "month" | "year";
+
 export type RecipeSales = {
-  recipeId: string;
+  id: string;
   name: string;
-  profit: number;
+  sales: number;
+  profit: number | null;
   quantitySold: number;
 };
+
+export type RecipeSalesByPeriod = Record<SalesPeriod, RecipeSales[]>;

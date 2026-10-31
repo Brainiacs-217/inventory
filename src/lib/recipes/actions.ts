@@ -6,6 +6,7 @@ import {
   mapFormToRecipeIngredientInserts,
   mapFormToRecipeInsert,
 } from "@/lib/recipes/mappers";
+import { setRecipeSquareItems } from "@/lib/sql/square/items";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import type { CreateRecipeFormValues } from "@/types/recipe";
@@ -144,6 +145,19 @@ export async function updateRecipe(
     .insert(mapFormToRecipeIngredientInserts(numericId, values.ingredients));
 
   if (ingredientsError) return { error: ingredientsError.message };
+
+  try {
+    const linkResult = await setRecipeSquareItems(
+      organizationId,
+      numericId,
+      values.squareItems.map((item) => item.id),
+    );
+    if ("error" in linkResult) return linkResult;
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to link Square items.",
+    };
+  }
 
   revalidatePath("/recipes");
   return { data: { recipeId } };

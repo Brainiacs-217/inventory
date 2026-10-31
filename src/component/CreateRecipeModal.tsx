@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { IngredientSearch } from "@/component/recipe/IngredientSearch";
 import { RecipeIdentityForm } from "@/component/recipe/RecipeIdentityForm";
 import { RecipeIngredientList } from "@/component/recipe/RecipeIngredientList";
+import { RecipeSquareLinks } from "@/component/recipe/RecipeSquareLinks";
 import { RecipeFormSection } from "@/component/recipe/formShared";
 import { Modal } from "@/component/Modal";
 import type { InventoryItem } from "@/types/item";
@@ -13,6 +14,7 @@ import {
   type BatchOption,
   type CreateRecipeFormValues,
   type RecipeIngredientInput,
+  type SquareItemMatch,
   type UnitOption,
 } from "@/types/recipe";
 
@@ -23,6 +25,8 @@ type CreateRecipeModalProps = {
   catalogItems: InventoryItem[];
   batches: BatchOption[];
   units: UnitOption[];
+  organizationId: string | null;
+  recipeId?: string | null;
   mode?: "create" | "edit";
   initialValues?: CreateRecipeFormValues | null;
 };
@@ -69,6 +73,7 @@ function seedRecipeValues(
   return {
     ...initialValues,
     ingredients: initialValues.ingredients.map((ingredient) => ({ ...ingredient })),
+    squareItems: initialValues.squareItems.map((item) => ({ ...item })),
   };
 }
 
@@ -79,6 +84,8 @@ export function CreateRecipeModal({
   catalogItems,
   batches,
   units,
+  organizationId,
+  recipeId = null,
   mode = "create",
   initialValues = null,
 }: CreateRecipeModalProps) {
@@ -88,15 +95,20 @@ export function CreateRecipeModal({
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [seeded, setSeeded] = useState(false);
   const initialValuesRef = useRef(initialValues);
   initialValuesRef.current = initialValues;
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setSeeded(false);
+      return;
+    }
     setValues(seedRecipeValues(initialValuesRef.current));
     setErrors({});
     setSaving(false);
     setSubmitError(null);
+    setSeeded(true);
   }, [open]);
 
   function updateField<K extends keyof CreateRecipeFormValues>(
@@ -104,9 +116,11 @@ export function CreateRecipeModal({
     value: CreateRecipeFormValues[K],
   ) {
     setValues((current) => ({ ...current, [key]: value }));
+    if (key !== "name" && key !== "ingredients") return;
+    const errorKey: "name" | "ingredients" = key;
     setErrors((current) => {
       const next = { ...current };
-      delete next[key];
+      delete next[errorKey];
       return next;
     });
   }
@@ -131,6 +145,21 @@ export function CreateRecipeModal({
     updateField(
       "ingredients",
       values.ingredients.filter((ingredient) => ingredient.id !== id),
+    );
+  }
+
+  function handleAddSquareItem(item: SquareItemMatch) {
+    if (values.squareItems.some((linked) => linked.id === item.id)) return;
+    updateField("squareItems", [
+      ...values.squareItems,
+      { id: item.id, name: item.name },
+    ]);
+  }
+
+  function handleRemoveSquareItem(id: string) {
+    updateField(
+      "squareItems",
+      values.squareItems.filter((item) => item.id !== id),
     );
   }
 
@@ -244,6 +273,24 @@ export function CreateRecipeModal({
             ) : null}
           </div>
         </RecipeFormSection>
+
+        {mode === "edit" && seeded && organizationId && recipeId ? (
+          <RecipeFormSection
+            step="03"
+            title="Square items"
+            description="Link the Square products that sell this recipe."
+            className="md:hidden"
+          >
+            <RecipeSquareLinks
+              organizationId={organizationId}
+              recipeId={recipeId}
+              recipeName={values.name || "this recipe"}
+              linkedItems={values.squareItems}
+              onAdd={handleAddSquareItem}
+              onRemove={handleRemoveSquareItem}
+            />
+          </RecipeFormSection>
+        ) : null}
       </form>
     </Modal>
   );

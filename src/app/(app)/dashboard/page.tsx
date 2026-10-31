@@ -4,19 +4,34 @@ import { InventoryAlerts } from "@/component/InventoryAlerts";
 import { ProfitOverTimeChart } from "@/component/ProfitOverTimeChart";
 import { RecipeProfitChart } from "@/component/RecipeProfitChart";
 import { SquareOAuthNotice } from "@/component/SquareOAuthNotice";
+import { getSelectedOrganizationId } from "@/lib/organizations/selectedOrg";
+import { listTopItemSales } from "@/lib/sql/profit/queries";
+import type { RecipeSalesByPeriod } from "@/types/dashboard";
 
-export default function DashboardPage() {
+const EMPTY_SALES: RecipeSalesByPeriod = {
+  day: [],
+  week: [],
+  month: [],
+  year: [],
+};
+
+export default async function DashboardPage() {
+  const organizationId = await getSelectedOrganizationId();
+  const salesByPeriod = organizationId
+    ? await listTopItemSales(organizationId)
+    : EMPTY_SALES;
+
   return (
     <div className="page-enter flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
       <Suspense fallback={null}>
         <SquareOAuthNotice />
       </Suspense>
 
-      <ProfitOverTimeChart data={[]} />
+      <RecipeProfitChart data={salesByPeriod} />
 
       <div className="flex shrink-0 flex-col gap-4 lg:flex-row lg:items-stretch">
         <div className="flex min-w-0 flex-1 flex-col">
-          <RecipeProfitChart data={[]} />
+          <ProfitOverTimeChart data={[]} />
         </div>
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
           <InventoryAlerts counts={[]} />

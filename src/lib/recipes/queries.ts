@@ -1,7 +1,8 @@
 import { mapRecipeRowToRecipe } from "@/lib/recipes/mappers";
 import { listRecipeCosts } from "@/lib/sql/recipes/queries";
+import { listLinkedSquareItems } from "@/lib/sql/square/items";
 import { createClient } from "@/lib/supabase/server";
-import type { Recipe } from "@/types/recipe";
+import type { LinkedSquareItem, Recipe } from "@/types/recipe";
 import type { Tables } from "@/types/database";
 
 function parseCost(value: number | string | null | undefined): number | null {
@@ -27,7 +28,7 @@ export async function getOrganizationRecipes(
 
   if (!user) return [];
 
-  const [{ data, error }, costs] = await Promise.all([
+  const [{ data, error }, costs, squareLinks] = await Promise.all([
     supabase
       .from("recipes")
       .select(
@@ -36,11 +37,19 @@ export async function getOrganizationRecipes(
       .eq("organization_id", organizationId)
       .order("name"),
     loadRecipeCosts(organizationId),
+    listLinkedSquareItems(organizationId),
   ]);
 
   if (error) {
     console.error("Failed to load organization recipes:", error.message);
     return [];
+  }
+
+  const squareItemsByRecipe = new Map<string, LinkedSquareItem[]>();
+  for (const link of squareLinks) {
+    const items = squareItemsByRecipe.get(link.recipeId) ?? [];
+    items.push({ id: link.id, name: link.name });
+    squareItemsByRecipe.set(link.recipeId, items);
   }
 
   return (data ?? []).map((row) => {
@@ -57,6 +66,10 @@ export async function getOrganizationRecipes(
         }[];
       },
     );
-    return { ...recipe, cog: costs.get(recipe.id) ?? null };
+    return {
+      ...recipe,
+      cog: costs.get(recipe.id) ?? null,
+      squareItems: squareItemsByRecipe.get(recipe.id) ?? [],
+    };
   });
 }

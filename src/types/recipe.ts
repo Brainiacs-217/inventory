@@ -12,6 +12,16 @@ export type RecipeIngredientInput = {
   note: string;
 };
 
+export type LinkedSquareItem = {
+  id: string;
+  name: string;
+};
+
+export type SquareItemMatch = LinkedSquareItem & {
+  recipeId: string | null;
+  recipeName: string | null;
+};
+
 export type Recipe = {
   id: string;
   name: string;
@@ -19,11 +29,13 @@ export type Recipe = {
   ingredientCount: number;
   cog: number | null;
   ingredients: RecipeIngredientInput[];
+  squareItems: LinkedSquareItem[];
 };
 
 export type CreateRecipeFormValues = {
   name: string;
   ingredients: RecipeIngredientInput[];
+  squareItems: LinkedSquareItem[];
 };
 
 export type UnitOption = {
@@ -42,6 +54,7 @@ export function createEmptyRecipeFormValues(): CreateRecipeFormValues {
   return {
     name: "",
     ingredients: [],
+    squareItems: [],
   };
 }
 

@@ -376,9 +376,15 @@ export function RecipesTable({
         mode={editingRecipe ? "edit" : "create"}
         initialValues={
           editingRecipe
-            ? { name: editingRecipe.name, ingredients: editingRecipe.ingredients }
+            ? {
+                name: editingRecipe.name,
+                ingredients: editingRecipe.ingredients,
+                squareItems: editingRecipe.squareItems,
+              }
             : null
         }
+        organizationId={organizationId}
+        recipeId={editingRecipe?.id ?? null}
         onClose={() => {
           setCreateOpen(false);
           setEditingRecipe(null);
