@@ -74,21 +74,16 @@ function useNarrowScreen(): boolean {
 const NARROW_NAME_WIDTH = 124;
 
 type RecipeNameTickProps = {
-  y?: number;
-  payload?: { value?: string };
+  y?: string | number;
+  payload?: { value?: unknown };
 };
 
 function RecipeNameTick({ y = 0, payload }: RecipeNameTickProps) {
+  const label = typeof payload?.value === "string" ? payload.value : "";
+
   return (
-    <text
-      x={0}
-      y={y}
-      dy={4}
-      textAnchor="start"
-      fill={CHART_MUTED}
-      fontSize={12}
-    >
-      {payload?.value}
+    <text x={0} y={y} dy={4} textAnchor="start" fill={CHART_MUTED} fontSize={12}>
+      {label}
     </text>
   );
 }
