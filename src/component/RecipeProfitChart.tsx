@@ -1,7 +1,7 @@
 "use client";
 
 import { BookOpen } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -57,6 +57,42 @@ const PERIODS: { id: SalesPeriod; label: string; range: string }[] = [
   { id: "year", label: "Yearly", range: "This year" },
 ];
 
+function useNarrowScreen(): boolean {
+  const [narrow, setNarrow] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const update = () => setNarrow(media.matches);
+    update();
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return narrow;
+}
+
+const NARROW_NAME_WIDTH = 124;
+
+type RecipeNameTickProps = {
+  y?: number;
+  payload?: { value?: string };
+};
+
+function RecipeNameTick({ y = 0, payload }: RecipeNameTickProps) {
+  return (
+    <text
+      x={0}
+      y={y}
+      dy={4}
+      textAnchor="start"
+      fill={CHART_MUTED}
+      fontSize={12}
+    >
+      {payload?.value}
+    </text>
+  );
+}
+
 function formatProfitAxisTick(value: number): string {
   const absolute = Math.abs(value);
   const sign = value < 0 ? "-" : "";
@@ -97,7 +133,9 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
   const [period, setPeriod] = useState<SalesPeriod>("day");
   const { position, onMouseMove, onMouseLeave } = useFollowCursorTooltip();
   const recipes = data[period] ?? [];
+  const narrow = useNarrowScreen();
   const rangeLabel = PERIODS.find((option) => option.id === period)?.range ?? "Today";
+  const chartHeight = narrow ? Math.max(320, recipes.length * 52 + 72) : undefined;
 
   return (
     <div className={CHART_CARD_CLASS}>
@@ -138,7 +176,10 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
           })}
         </div>
       </div>
-      <div className="h-[calc(14rem+1in)] px-2 pb-5 pt-4 sm:px-4">
+      <div
+        className={`pb-5 pt-4 sm:px-4 ${narrow ? "pl-5 pr-3" : "h-[calc(14rem+1in)] px-2"}`}
+        style={chartHeight ? { height: chartHeight } : undefined}
+      >
         {recipes.length === 0 ? (
           <p className="flex h-full items-center justify-center text-sm text-text-muted">
             No recipes yet.
@@ -148,8 +189,13 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
             <BarChart
               {...CHART_ACCESSIBILITY}
               data={recipes}
+              layout={narrow ? "vertical" : "horizontal"}
               barGap={4}
-              margin={{ top: 28, right: 12, left: 4, bottom: 36 }}
+              margin={
+                narrow
+                  ? { top: 28, right: 8, left: 0, bottom: 4 }
+                  : { top: 28, right: 12, left: 4, bottom: 64 }
+              }
               onMouseMove={onMouseMove}
               onMouseLeave={onMouseLeave}
             >
@@ -159,26 +205,56 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
                   <stop offset="95%" stopColor={CHART_PROFIT_FILL_ACTIVE} stopOpacity={0.25} />
                 </linearGradient>
               </defs>
-              <CartesianGrid stroke={CHART_BORDER} strokeDasharray="3 3" vertical={false} />
-              <XAxis
-                dataKey="name"
-                height={48}
-                tick={{ fill: CHART_MUTED, fontSize: 11 }}
-                axisLine={{ stroke: CHART_BORDER }}
-                tickLine={false}
-                tickMargin={12}
-                interval={0}
-                tickFormatter={(value: string) =>
-                  value.length > 14 ? `${value.slice(0, 12)}…` : value
-                }
+              <CartesianGrid
+                stroke={CHART_BORDER}
+                strokeDasharray="3 3"
+                vertical={narrow}
+                horizontal={!narrow}
               />
-              <YAxis
-                tickFormatter={formatProfitAxisTick}
-                tick={{ fill: CHART_MUTED, fontSize: 12 }}
-                axisLine={false}
-                tickLine={false}
-                width={52}
-              />
+              {narrow ? (
+                <XAxis
+                  type="number"
+                  tickFormatter={formatProfitAxisTick}
+                  tick={{ fill: CHART_MUTED, fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+              ) : (
+                <XAxis
+                  dataKey="name"
+                  type="category"
+                  height={72}
+                  tick={{ fill: CHART_MUTED, fontSize: 11 }}
+                  axisLine={{ stroke: CHART_BORDER }}
+                  tickLine={false}
+                  interval={0}
+                  angle={-32}
+                  textAnchor="end"
+                  tickFormatter={(value: string) =>
+                    value.length > 16 ? `${value.slice(0, 14)}…` : value
+                  }
+                />
+              )}
+              {narrow ? (
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={NARROW_NAME_WIDTH}
+                  tick={RecipeNameTick}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={0}
+                />
+              ) : (
+                <YAxis
+                  type="number"
+                  tickFormatter={formatProfitAxisTick}
+                  tick={{ fill: CHART_MUTED, fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={52}
+                />
+              )}
               <Tooltip
                 content={<RecipeTooltip />}
                 cursor={CHART_CURSOR}
@@ -198,8 +274,8 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
                 fill={CHART_FILL}
                 stroke={CHART_FILL_ACTIVE}
                 strokeWidth={1}
-                radius={[6, 6, 0, 0]}
-                maxBarSize={56}
+                radius={narrow ? [0, 6, 6, 0] : [6, 6, 0, 0]}
+                maxBarSize={narrow ? 12 : 56}
                 activeBar={{ fill: CHART_FILL_ACTIVE, stroke: CHART_FILL_ACTIVE }}
                 {...CHART_BAR_PROPS}
               />
@@ -209,8 +285,8 @@ export function RecipeProfitChart({ data }: RecipeProfitChartProps) {
                 fill={`url(#${RECIPE_PROFIT_GRADIENT_ID})`}
                 stroke={CHART_PROFIT_STROKE}
                 strokeWidth={1}
-                radius={[6, 6, 0, 0]}
-                maxBarSize={56}
+                radius={narrow ? [0, 6, 6, 0] : [6, 6, 0, 0]}
+                maxBarSize={narrow ? 12 : 56}
                 activeBar={{ fill: CHART_PROFIT_FILL_ACTIVE, stroke: CHART_PROFIT_STROKE }}
                 {...CHART_BAR_PROPS}
               />
